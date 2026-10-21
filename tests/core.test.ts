@@ -91,7 +91,7 @@ describe("versioned configuration", () => {
     });
     expect(config).not.toHaveProperty("authorizationCode");
     expect(getConfigPaths({ environment }).configPath).toBe(
-      path.join(environment.LOCALAPPDATA as string, "Codex", "plugins", "qq-mail", "config.json"),
+      path.join(environment.USERPROFILE as string, ".qq-mail", "config.json"),
     );
   });
 

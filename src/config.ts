@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { lstatSync, realpathSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod/v4";
@@ -157,7 +158,7 @@ export interface ConfigStorageOptions {
 }
 
 export class ConfigStorageError extends Error {
-  readonly code: "CONFIG_PATH_UNAVAILABLE" | "CONFIG_INVALID" | "CONFIG_IO_ERROR";
+  readonly code: "CONFIG_PATH_UNAVAILABLE" | "CONFIG_INVALID" | "CONFIG_IO_ERROR" | "CONFIG_LOCATION_CONFLICT" | "CONFIG_ATOMIC_REPLACE_UNAVAILABLE";
 
   constructor(code: ConfigStorageError["code"], message: string) {
     super(message);
@@ -177,10 +178,23 @@ export function getDefaultDownloadDirectory(environment: NodeJS.ProcessEnv = pro
 export function getConfigPaths(options: ConfigStorageOptions = {}): ConfigPaths {
   const environment = options.environment ?? process.env;
   const localAppData = environment.LOCALAPPDATA ?? environment.LocalAppData;
-  const directory = options.directory ?? (localAppData ? path.join(localAppData, "Codex", "plugins", "qq-mail") : undefined);
+  const legacy = localAppData ? path.join(localAppData, "Codex", "plugins", "qq-mail") : undefined;
+  const preferred = environment.USERPROFILE ? path.join(environment.USERPROFILE, ".qq-mail") : undefined;
+  let directory = options.directory;
+  if (!directory) {
+    // Fresh installations avoid host-owned AppData storage, where Windows
+    // application encryption can reject even same-directory rename with EXDEV.
+    // Never silently abandon an existing account, credential, draft or lock.
+    const hasLegacy = legacy ? hasStoredState(legacy) : false;
+    const hasPreferred = preferred ? hasStoredState(preferred) : false;
+    if (hasLegacy && hasPreferred) {
+      throw new ConfigStorageError("CONFIG_LOCATION_CONFLICT", "QQmail 检测到两个存储位置都有账户或草稿数据，请先确认使用哪个位置；未移动或删除任何数据。");
+    }
+    directory = hasLegacy ? legacy : preferred ?? legacy;
+  }
 
   if (!directory) {
-    throw new ConfigStorageError("CONFIG_PATH_UNAVAILABLE", "LOCALAPPDATA is unavailable; QQ Mail settings cannot be stored.");
+    throw new ConfigStorageError("CONFIG_PATH_UNAVAILABLE", "Windows user storage is unavailable; QQ Mail settings cannot be stored.");
   }
 
   return {
@@ -188,6 +202,29 @@ export function getConfigPaths(options: ConfigStorageOptions = {}): ConfigPaths 
     configPath: path.join(directory, "config.json"),
     secretPath: path.join(directory, "secret.bin"),
   };
+}
+
+const STORED_STATE_NAMES = ["config.json", "secret.bin", "account.json", "account-profiles.json",
+  "drafts.enc.json", "account.lock", "account.lock.recovery", "drafts.lock", "drafts.lock.recovery"];
+function hasStoredState(directory: string): boolean {
+  try {
+    const root = lstatSync(directory);
+    if (!root.isDirectory() || root.isSymbolicLink()) throw new Error("Invalid storage directory");
+    const expected = path.join(realpathSync.native(path.dirname(directory)), path.basename(directory));
+    if (realpathSync.native(directory).toLowerCase() !== expected.toLowerCase()) throw new Error("Redirected storage directory");
+    let present = false;
+    for (const name of STORED_STATE_NAMES) {
+      try {
+        const entry = lstatSync(path.join(directory, name));
+        if (!entry.isFile() || entry.isSymbolicLink()) throw new Error("Invalid storage entry");
+        present = true;
+      } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    }
+    return present;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw new ConfigStorageError("CONFIG_IO_ERROR", "QQmail 无法安全检查已有账户存储，未切换到其他目录。");
+  }
 }
 
 export function createConfig(
@@ -231,6 +268,9 @@ export async function writeFileAtomically(
     await rename(temporaryPath, targetPath);
   } catch (error) {
     await rm(temporaryPath, { force: true }).catch(() => undefined);
+    if ((error as NodeJS.ErrnoException).code === "EXDEV") {
+      throw new ConfigStorageError("CONFIG_ATOMIC_REPLACE_UNAVAILABLE", "当前本地存储位置不支持原子保存，已有设置未被覆盖。请检查存储位置后重试。");
+    }
     throw error;
   }
 }
@@ -261,7 +301,8 @@ export async function saveConfig(config: QqMailConfigInput, options: ConfigStora
 
   try {
     await writeFileAtomically(configPath, `${JSON.stringify(parsed, null, 2)}\n`, 0o600, options.acl);
-  } catch {
+  } catch (error) {
+    if (error instanceof ConfigStorageError) throw error;
     throw new ConfigStorageError("CONFIG_IO_ERROR", "QQ Mail settings could not be saved.");
   }
 

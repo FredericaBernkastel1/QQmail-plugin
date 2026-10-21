@@ -1,5 +1,6 @@
 import {
   CONFIG_VERSION,
+  ConfigStorageError,
   DEFAULT_DOWNLOAD_BYTES,
   PRESETS,
   configSchema,
@@ -202,9 +203,9 @@ export function createSettingsCallbacks(options: SettingsCallbackOptions): Setti
         resetConnectionStatus();
         assertRequestActive(context);
         return { ok: true, message: "授权码已安全保存。" };
-      } catch {
+      } catch (error) {
         assertRequestActive(context);
-        return { ok: false, message: "授权码保存失败。" };
+        return { ok: false, message: error instanceof ConfigStorageError ? error.message : "授权码保存失败。" };
       }
       });
     },
@@ -278,7 +279,7 @@ export function createSettingsCallbacks(options: SettingsCallbackOptions): Setti
         });
       } catch (error) {
         assertRequestActive(context);
-        return { ok: false, message: error instanceof AccountStateError ? error.message : "QQ 邮箱设置保存失败。" };
+        return { ok: false, message: error instanceof AccountStateError || error instanceof ConfigStorageError ? error.message : "QQ 邮箱设置保存失败。" };
       }
     },
 

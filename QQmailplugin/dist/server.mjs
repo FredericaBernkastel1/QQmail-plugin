@@ -72875,6 +72875,7 @@ import path4 from "node:path";
 
 // src/config.ts
 import { randomUUID } from "node:crypto";
+import { lstatSync, realpathSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path2 from "node:path";
 
@@ -73216,15 +73217,58 @@ function getDefaultDownloadDirectory(environment = process.env) {
 function getConfigPaths(options = {}) {
   const environment = options.environment ?? process.env;
   const localAppData = environment.LOCALAPPDATA ?? environment.LocalAppData;
-  const directory = options.directory ?? (localAppData ? path2.join(localAppData, "Codex", "plugins", "qq-mail") : void 0);
+  const legacy = localAppData ? path2.join(localAppData, "Codex", "plugins", "qq-mail") : void 0;
+  const preferred = environment.USERPROFILE ? path2.join(environment.USERPROFILE, ".qq-mail") : void 0;
+  let directory = options.directory;
   if (!directory) {
-    throw new ConfigStorageError("CONFIG_PATH_UNAVAILABLE", "LOCALAPPDATA is unavailable; QQ Mail settings cannot be stored.");
+    const hasLegacy = legacy ? hasStoredState(legacy) : false;
+    const hasPreferred = preferred ? hasStoredState(preferred) : false;
+    if (hasLegacy && hasPreferred) {
+      throw new ConfigStorageError("CONFIG_LOCATION_CONFLICT", "QQmail \u68C0\u6D4B\u5230\u4E24\u4E2A\u5B58\u50A8\u4F4D\u7F6E\u90FD\u6709\u8D26\u6237\u6216\u8349\u7A3F\u6570\u636E\uFF0C\u8BF7\u5148\u786E\u8BA4\u4F7F\u7528\u54EA\u4E2A\u4F4D\u7F6E\uFF1B\u672A\u79FB\u52A8\u6216\u5220\u9664\u4EFB\u4F55\u6570\u636E\u3002");
+    }
+    directory = hasLegacy ? legacy : preferred ?? legacy;
+  }
+  if (!directory) {
+    throw new ConfigStorageError("CONFIG_PATH_UNAVAILABLE", "Windows user storage is unavailable; QQ Mail settings cannot be stored.");
   }
   return {
     directory,
     configPath: path2.join(directory, "config.json"),
     secretPath: path2.join(directory, "secret.bin")
   };
+}
+var STORED_STATE_NAMES = [
+  "config.json",
+  "secret.bin",
+  "account.json",
+  "account-profiles.json",
+  "drafts.enc.json",
+  "account.lock",
+  "account.lock.recovery",
+  "drafts.lock",
+  "drafts.lock.recovery"
+];
+function hasStoredState(directory) {
+  try {
+    const root = lstatSync(directory);
+    if (!root.isDirectory() || root.isSymbolicLink()) throw new Error("Invalid storage directory");
+    const expected = path2.join(realpathSync.native(path2.dirname(directory)), path2.basename(directory));
+    if (realpathSync.native(directory).toLowerCase() !== expected.toLowerCase()) throw new Error("Redirected storage directory");
+    let present = false;
+    for (const name4 of STORED_STATE_NAMES) {
+      try {
+        const entry = lstatSync(path2.join(directory, name4));
+        if (!entry.isFile() || entry.isSymbolicLink()) throw new Error("Invalid storage entry");
+        present = true;
+      } catch (error64) {
+        if (error64.code !== "ENOENT") throw error64;
+      }
+    }
+    return present;
+  } catch (error64) {
+    if (error64.code === "ENOENT") return false;
+    throw new ConfigStorageError("CONFIG_IO_ERROR", "QQmail \u65E0\u6CD5\u5B89\u5168\u68C0\u67E5\u5DF2\u6709\u8D26\u6237\u5B58\u50A8\uFF0C\u672A\u5207\u6362\u5230\u5176\u4ED6\u76EE\u5F55\u3002");
+  }
 }
 async function writeFileAtomically(targetPath, data, mode = 384, aclOptions = {}) {
   const directory = path2.dirname(targetPath);
@@ -73237,6 +73281,9 @@ async function writeFileAtomically(targetPath, data, mode = 384, aclOptions = {}
     await rename(temporaryPath, targetPath);
   } catch (error64) {
     await rm(temporaryPath, { force: true }).catch(() => void 0);
+    if (error64.code === "EXDEV") {
+      throw new ConfigStorageError("CONFIG_ATOMIC_REPLACE_UNAVAILABLE", "\u5F53\u524D\u672C\u5730\u5B58\u50A8\u4F4D\u7F6E\u4E0D\u652F\u6301\u539F\u5B50\u4FDD\u5B58\uFF0C\u5DF2\u6709\u8BBE\u7F6E\u672A\u88AB\u8986\u76D6\u3002\u8BF7\u68C0\u67E5\u5B58\u50A8\u4F4D\u7F6E\u540E\u91CD\u8BD5\u3002");
+    }
     throw error64;
   }
 }
@@ -73705,7 +73752,7 @@ var AccountStore = class {
       const profile = config2 ? migratedProfile(config2, revision, null) : void 0;
       return { raw, revision, activeProfileId: profile?.id ?? null, profiles: profile ? [profile] : [] };
     } catch (error64) {
-      if (error64 instanceof AccountStateError) throw error64;
+      if (error64 instanceof AccountStateError || error64 instanceof ConfigStorageError) throw error64;
       throw new AccountStateError();
     }
   }
@@ -112461,7 +112508,7 @@ var nodemailer = {
 var nodemailer_default = nodemailer;
 
 // src/version.ts
-var VERSION = "0.4.1";
+var VERSION = "0.4.2";
 
 // src/mail/gateways.ts
 var TLS_OPTIONS = Object.freeze({ rejectUnauthorized: true, minVersion: "TLSv1.2" });
@@ -121544,9 +121591,9 @@ function createSettingsCallbacks(options) {
           resetConnectionStatus();
           assertRequestActive(context);
           return { ok: true, message: "\u6388\u6743\u7801\u5DF2\u5B89\u5168\u4FDD\u5B58\u3002" };
-        } catch {
+        } catch (error64) {
           assertRequestActive(context);
-          return { ok: false, message: "\u6388\u6743\u7801\u4FDD\u5B58\u5931\u8D25\u3002" };
+          return { ok: false, message: error64 instanceof ConfigStorageError ? error64.message : "\u6388\u6743\u7801\u4FDD\u5B58\u5931\u8D25\u3002" };
         }
       });
     },
@@ -121611,7 +121658,7 @@ function createSettingsCallbacks(options) {
         });
       } catch (error64) {
         assertRequestActive(context);
-        return { ok: false, message: error64 instanceof AccountStateError ? error64.message : "QQ \u90AE\u7BB1\u8BBE\u7F6E\u4FDD\u5B58\u5931\u8D25\u3002" };
+        return { ok: false, message: error64 instanceof AccountStateError || error64 instanceof ConfigStorageError ? error64.message : "QQ \u90AE\u7BB1\u8BBE\u7F6E\u4FDD\u5B58\u5931\u8D25\u3002" };
       }
     },
     async clear(context) {

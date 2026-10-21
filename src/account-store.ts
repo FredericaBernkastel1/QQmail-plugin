@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod/v4";
-import { configSchema, getConfigPaths, loadConfig, writeFileAtomically,
+import { ConfigStorageError, configSchema, getConfigPaths, loadConfig, writeFileAtomically,
   type ConfigStorageOptions, type QqMailConfig } from "./config.js";
 import { protectSecret, unprotectSecret, type DpapiOptions } from "./dpapi.js";
 import { restrictWindowsPathToCurrentUser } from "./windows-acl.js";
@@ -125,7 +125,7 @@ export class AccountStore implements AccountProfileRepository {
       const revision = createHash("sha256").update(JSON.stringify(config)).digest("hex");
       const profile = config ? migratedProfile(config, revision, null) : undefined;
       return { raw, revision, activeProfileId: profile?.id ?? null, profiles: profile ? [profile] : [] };
-    } catch (error) { if (error instanceof AccountStateError) throw error; throw new AccountStateError(); }
+    } catch (error) { if (error instanceof AccountStateError || error instanceof ConfigStorageError) throw error; throw new AccountStateError(); }
   }
   async snapshot(): Promise<AccountSnapshot> {
     const state = await this.#read();
