@@ -1,6 +1,6 @@
 # QQmail 云端部署与 readiness 验收
 
-更新时间：2026-10-21。当前状态为部署设计稿。此文档不包含生产令牌、邮箱授权码、私密日志或已部署地址；示例占位名称不能用于生产。
+更新时间：2026-10-21。当前状态为已完成下述实现验证的 0.4.0 云端候选，尚未完成真实环境验收。此文档不包含生产令牌、邮箱授权码、私密日志或已部署地址；示例占位名称不能用于生产。
 
 ## 部署前须确定的输入
 
@@ -16,7 +16,7 @@
 | 草稿存储 | 服务身份可读写的持久卷、加密备份、保留时间与恢复负责人 | 待提供 |
 | 自动化规则 | `delegation` 中的 consentId、expiresAt、actions、recipients、maxOperations（整份同意总预算，最多 100） | 默认不启用写 |
 | 外联 | IdP JWKS 所需 HTTPS、固定 QQ IMAP/SMTP 的 TLS 连接及 DNS | 待环境验证 |
-| 最终启动契约 | 源入口 `src/cloud/server.ts`，构建产物 `dist/cloud-server.mjs`，Node >= 22；发布包仍须构建与验收 | 已有实现，待验收 |
+| 最终启动契约 | 源入口 `src/cloud/server.ts`，构建产物 `dist/cloud-server.mjs`，Node >= 22 | Windows 构建/实际 bundle 冒烟及 Linux CI build 已通过；真实部署待验收 |
 
 配置以 `src/cloud/config.ts` 的严格 schema 为准，当前顶层字段为 `schemaVersion`、`publicUrl`、`listen`、`oauth`、`mailbox`、`stateDirectory`、`masterKeyBase64` 和可选 `delegation`。`oauth` 包含 `issuer`、`jwksUrl`、`ownerSubject`、`clientId`；`mailbox` 包含固定账户、授权码、TLS 服务器和目录配置。省略 `delegation` 即关闭所有写操作；不要在配置示例中填入真实密钥。
 
@@ -67,20 +67,20 @@ docker run --name qq-mail-cloud --init --read-only --user 1000:1000 \
 
 这组资源限额是部署起点，需按负载验收；它们不代表已通过容量测试。只允许一个运行实例访问同一持久卷，禁止临时卷、并行副本和滚动并存。受控出口需允许指定 IdP 和邮箱服务器，入口只允许 HTTPS 代理访问；不要挂载 Docker socket、宿主目录或任意秘密目录。宿主不在同一机器时，应使用私有容器网络和对应代理策略，而不是把 8787 开放公网。
 
-Linux 文件权限、fsync/rename、卷锁、容器只读根、用户映射和镜像运行均为 `NOT_RUN`；Windows 合成测试不能替代这些验收。实际部署后再填写 C13/C15/C20，并保留脱敏证据。
+Linux CI 已运行选定云端存储测试，包括 Windows 跳过的两项 POSIX 测试。实际持久卷的权限、fsync/rename 和锁语义，以及 Docker 构建、只读根、用户映射和镜像运行仍为 `NOT_RUN`；CI 临时文件系统不能替代部署验收。实际部署后再填写 C13/C15/C20，并保留脱敏证据。
 
 ## 生成公开连接清单
 
-工作区的 `tools/render-cloud-plugin.py` 是仅依赖 Python 标准库的操作者工具。它接收已确定的公网 HTTPS `/mcp` 地址、公开 OAuth client ID 和绝对的新输出目录，生成 `plugin.json` 与 `mcp.json`。输出保留 `qq-mail` / `0.4.0` 身份，使用 remote `streamable-http`、provided public OAuth client（`tokenEndpointAuthMethod: "none"`）以及基础 scopes `mail.read`、`mail.drafts.read`。外部 IdP 需支持相应公共客户端和 PKCE S256；不支持时应先处理 IdP 集成，不能把 client secret 写进清单。
+公开源码仓库的工具路径是 `scripts/render-cloud-plugin.py`；本地 QQmail 开发工作区的同用途工具路径是 `tools/render-cloud-plugin.py`，两者不要混用。工具仅依赖 Python 标准库，接收已确定的公网 HTTPS `/mcp` 地址、公开 OAuth client ID 和绝对的新输出目录，生成 `plugin.json` 与 `mcp.json`。输出保留 `qq-mail` / `0.4.0` 身份，使用 remote `streamable-http`、provided public OAuth client（`tokenEndpointAuthMethod: "none"`）以及基础 scopes `mail.read`、`mail.drafts.read`。外部 IdP 需支持相应公共客户端和 PKCE S256；不支持时应先处理 IdP 集成，不能把 client secret 写进清单。
 
 ```sh
-python3 /absolute/QQmail/tools/render-cloud-plugin.py \
+python3 /absolute/QQmail-plugin/scripts/render-cloud-plugin.py \
   --url "$QQMAIL_PUBLIC_URL" \
   --client-id "$QQMAIL_PUBLIC_CLIENT_ID" \
   --output /absolute/new/qqmail-cloud-plugin
 ```
 
-上述两个变量只包含操作者已核对的公开 URL/client ID，不包含密码或 token。程序拒绝 example/invalid 等占位、本地名称、IP 字面量、非 HTTPS、非 `/mcp` 路径、userinfo、query/fragment，以及已经存在的输出目录；父目录须先存在。它不会访问 DNS/网络、读取邮箱配置、部署或安装插件，也不会自动启用写 scopes。语法验证不能证明域名解析到公网、证书有效或服务可用，这些仍需部署验收。
+上例用于公开源码仓库；在本地开发工作区使用时，将脚本路径替换为该工作区的 `tools/render-cloud-plugin.py`。上述两个变量只包含操作者已核对的公开 URL/client ID，不包含密码或 token。程序拒绝 example/invalid 等占位、本地名称、IP 字面量、非 HTTPS、非 `/mcp` 路径、userinfo、query/fragment，以及已经存在的输出目录；父目录须先存在。它不会访问 DNS/网络、读取邮箱配置、部署或安装插件，也不会自动启用写 scopes。本轮纯 Python 34 项检查和合成 CLI 生成通过，但语法验证不能证明域名解析到公网、证书有效或服务可用。
 
 清单遵循 OpenAI 官方打包页的扩展位置和 canonical `$schema` 标识。当前公开通用 MCP JSON schema 的 `streamableHttpServer` 尚未列出 `extensions`，而同页官方 OAuth 示例明确使用它；因此不能把独立通用 schema 校验误报为已通过。须在实际 ChatGPT/Dot 插件加载流程核验 OpenAI 扩展解析与 OAuth 连接。[官方打包与 OAuth 示例](https://developers.openai.com/plugins/build/plugins)、[通用 MCP schema](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)
 
@@ -123,32 +123,38 @@ python3 /absolute/QQmail/tools/render-cloud-plugin.py \
 
 ## Cloud readiness 矩阵
 
-状态规则：`NOT_RUN` 表示没有本部署的运行证据；`BLOCKED_CONFIG` 表示生产输入尚未确定；`PASS` 必须附本版本、环境、时间、用例和脱敏结果。以下初始状态不得被旧 361 项合成结果自动覆盖。
+本轮实现证据：Windows AppContainer `cloud-compile-003` 类型检查 PASS；`cloud-build-001` 构建 PASS；`cloud-bundle-002` 使用真实构建 bundle，启动、health、资源元数据和未认证 POST 先拒绝均 PASS。
 
-| ID | 验收面 | 必须满足的结果 | 初始状态 |
-| --- | --- | --- | --- |
-| C01 | 默认只读 | 未开启已获同意的写策略时，只能读；直接调用隐藏写工具也失败 | NOT_RUN |
-| C02 | 私有数据认证 | 缺失/损坏 Bearer、错误签名、过期、未生效 token 均拒绝；零邮箱动作 | NOT_RUN |
-| C03 | 身份绑定 | issuer、resource audience、owner subject、client ID 不匹配均拒绝；不接受自报身份 header 或工具参数 | NOT_RUN |
-| C04 | JWT 类型和密钥 | 固定算法/固定 JWKS；拒绝无签名、算法混淆、任意 jku/x5u、错误用途 token；key rotation 有界且失败关闭 | NOT_RUN |
-| C05 | 逐请求授权 | 旧 session ID、同一连接的降权/过期 token、并发不同 scope 请求均不能复用高权限上下文 | NOT_RUN |
-| C06 | Scope 隔离 | mail.authorize 单独不能发信；有 send scope 但无 task grant 也不能发信；每个 action 均独立检查 | NOT_RUN |
-| C07 | 用户同意 | 实际 IdP/宿主连接界面清楚表示有限自动化规则；没有同意承载则写不可用 | BLOCKED_CONFIG |
-| C08 | 任务策略 | 超出 operator 动作、收件人、TTL 或 quota 的请求被拒绝；purpose、approved、配置字段均不能改变权限 | NOT_RUN |
-| C09 | 授权归属 | 非 owner 或其他 client 拒绝；配置显式拒绝多个 client | NOT_RUN |
-| C10 | 批量和总预算 | 每封计费、整批原子预扣；任务 grant 全额先持久化预留；并发、重启、反复申请均不能重置整份 consent 的总量；写入不确定即停用 | NOT_RUN |
-| C11 | 最终分派重检 | 附件/MIME/邮箱选择等 await 期间撤销、到期或 HTTP 取消后，下一次写入停止；token expiry 同样生效 | NOT_RUN |
-| C12 | SMTP 幂等 | 并发重复、HTTP 重试、进程崩溃恢复不重复投递；delivery_unknown 保持终态；Sent 副本失败不改称发送失败 | NOT_RUN |
-| C13 | 草稿持久化 | 未知结果在 SMTP 前持久化；加密、损坏拒绝、锁、完整性、容量、路径/权限及密钥错误均有测试 | NOT_RUN |
-| C14 | 邮件范围 | To/Cc/Bcc 都受精确地址限制；flags/Trash 仅批准引用；UIDVALIDITY 变化拒绝，部分完成准确返回 | NOT_RUN |
-| C15 | HTTP 边界 | HTTPS入口、请求体/头/并发/超时有界；非法 method/path/Origin/Host 拒绝；代理和 CORS 不形成认证绕过 | NOT_RUN |
-| C16 | 无任意资源访问 | MCP 不能控制账户/主机/任意路径/URL/秘密文件；token 不可控制 JWKS 目的地 | NOT_RUN |
-| C17 | OAuth 发现与错误 | protected-resource metadata、WWW-Authenticate、工具 securitySchemes、scope 升级错误契约一致 | NOT_RUN |
-| C18 | 外部 IdP 联调 | 实际 PKCE S256、resource 参数、签发 audience、redirect、刷新、key rotation 全链路通过 | BLOCKED_CONFIG |
-| C19 | Dot 插件联调 | 实际安装、登录、只读调用、写权限请求/拒绝/允许、到期重新连接均有脱敏证据 | BLOCKED_CONFIG |
-| C20 | 长期托管 | 域名/TLS续期、重启、持久卷恢复、资源限额、进程数、监控和关闭写能力流程经过演练 | BLOCKED_CONFIG |
-| C21 | 真实 QQ 兼容 | 用户另行指定的测试账户完成读取/发送/flags/Trash；不继承合成 TLS 或本地通过状态 | NOT_RUN |
-| C22 | 发布与信息最小化 | 包内无秘密/私密日志/测试自动批准代码；仅公布必要域名与文档；出站/日志/备份脱敏复核 | NOT_RUN |
+测试历史保留如下：`cloud-tests-001` 曾暴露祖先 junction 路径问题，已修复生产存储校验；其后的 `cloud-tests-002` 共 472 项，469 通过、1 项因测试 junction 清理 `ENOTEMPTY` 失败、2 项 POSIX 跳过。随后只修改测试清理并保留原断言，`cloud-storage-003` 共 24 项，22 通过、2 项 POSIX 跳过。综合 470 个已执行用例通过，**不是一次全套 470 项测试运行**。
+
+Linux 的 [GitHub Actions 运行](https://github.com/FredericaBernkastel1/QQmail-plugin/actions/runs/39554963087) 对提交 `ec440ee4` 完成 npm ci、typecheck、选定 cloud/authorization 测试及 build，全部 success；包括两项 POSIX 测试，不是 Windows 全套测试。另有 181 个公开依赖公告检查匹配 0 条，以及 Python 生成工具 34 项检查与合成 CLI 通过；公告结果有时效性，不能证明不存在未知漏洞。
+
+矩阵将实现和环境分开：`COVERED` 表示相关实现与合成回归已通过上述验证，不等于该行全部生产条件通过；`PARTIAL` 表示已有部分实现证据。环境栏 `NOT_RUN` 表示尚无真实部署证据，`BLOCKED_CONFIG` 表示必需的生产输入未确定。正式 `PASS` 必须附本版本、环境、时间、用例及脱敏结果。
+
+| ID | 验收面 | 必须满足的结果 | 实现证据 | 真实环境 |
+| --- | --- | --- | --- | --- |
+| C01 | 默认只读 | 无已同意的 delegation 时只读，直接调用隐藏写工具也失败 | COVERED：工具/策略回归 | NOT_RUN |
+| C02 | 私有数据认证 | 缺失/损坏/过期/未生效 token 拒绝，零邮箱动作 | COVERED：认证回归；bundle 未认证 POST 拒绝 | NOT_RUN |
+| C03 | 身份绑定 | issuer/audience/owner/client 不符拒绝，自报字段不建立身份 | COVERED：认证回归 | NOT_RUN |
+| C04 | JWT 类型和密钥 | 固定算法/JWKS，错误用途或任意 key URL 拒绝，轮换有界失败关闭 | COVERED：签名与 JWKS 合成回归 | 外部 IdP 轮换 NOT_RUN |
+| C05 | 逐请求授权 | 连接降权/过期和并发 scope 不能复用高权限上下文 | COVERED：请求上下文回归 | NOT_RUN |
+| C06 | Scope 隔离 | mail.authorize 不能单独发信，send scope 不能代替 grant | COVERED：Authority/授权回归 | NOT_RUN |
+| C07 | 用户同意 | IdP/宿主清楚承载有限规则，无同意则写不可用 | PARTIAL：默认拒绝策略已实现 | BLOCKED_CONFIG |
+| C08 | 任务策略 | 动作、收件人、TTL、quota 受限，purpose/approved 不提权 | COVERED：策略及地址规范化回归 | NOT_RUN |
+| C09 | 授权归属 | 非 owner/其他 client 拒绝，不接受多个 client | COVERED：认证/配置回归 | NOT_RUN |
+| C10 | 批量和总预算 | 按邮件计费，全 grant 持久化预留，并发/重启不续量，写入不确定即停用 | COVERED：总预算/授权/存储回归 | 实际持久卷 NOT_RUN |
+| C11 | 最终分派重检 | await 期间撤销、到期或取消后停止后续写入 | COVERED：SMTP/IMAP/HTTP 取消回归 | NOT_RUN |
+| C12 | SMTP 幂等 | 重复与恢复不重投，unknown 保持终态，关闭前等待已开始工作保存结果 | COVERED：发送状态及 drain 回归 | 真实 SMTP/崩溃演练 NOT_RUN |
+| C13 | 草稿持久化 | 发送前屏障，加密、完整性、锁、路径/权限及错误 key 拒绝 | COVERED：Windows 定点复验；Linux 含 POSIX 测试 | Docker/实际持久卷 NOT_RUN |
+| C14 | 邮件范围 | To/Cc/Bcc 全覆盖，flags/Trash 精确引用，UIDVALIDITY 与部分结果准确 | COVERED：邮箱服务/授权合成回归 | 真实 QQ NOT_RUN |
+| C15 | HTTP 边界 | 请求体/头/并发/取消有界，method/path/Origin/Host 拒绝，代理不绕过认证 | PARTIAL：HTTP 回归及本地 bundle 冒烟通过 | 公网 TLS/代理 NOT_RUN |
+| C16 | 无任意资源访问 | MCP 不能改账户/路径/主机/秘密或 JWKS 目的地 | COVERED：profile/schema/认证回归 | 部署隔离 NOT_RUN |
+| C17 | OAuth 发现与错误 | metadata/challenge/securitySchemes 一致，宿主识别 scope 升级 | PARTIAL：响应适配器回归及 bundle metadata 通过 | 实际宿主解析 NOT_RUN |
+| C18 | 外部 IdP 联调 | PKCE、resource、audience、redirect、刷新、key rotation 全链路通过 | 合成 JWT 不替代 IdP 联调 | BLOCKED_CONFIG |
+| C19 | Dot 插件联调 | 安装、登录、读取、写请求拒绝/允许和到期重连有证据 | 清单 Python 34 项及 CLI 通过 | BLOCKED_CONFIG |
+| C20 | 长期托管 | TLS 续期、重启/恢复、资源限额、单实例和关闭写能力经过演练 | 仅构建、CI 与本地启动证据 | BLOCKED_CONFIG；Docker NOT_RUN |
+| C21 | 真实 QQ 兼容 | 指定测试账户完成读取/发送/flags/Trash | 合成邮箱结果不替代真实 QQ | NOT_RUN |
+| C22 | 发布与信息最小化 | 包无秘密/私密日志/测试批准代码，出站/日志/备份经复核 | PARTIAL：公开依赖公告 181 项匹配 0，公开清单生成通过 | 部署秘密/日志/备份 NOT_RUN |
 
 ## 运行与撤销
 

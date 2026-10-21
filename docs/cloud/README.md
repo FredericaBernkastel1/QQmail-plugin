@@ -1,6 +1,6 @@
 # QQmail 远程 MCP 插件：云端设计与验收范围
 
-更新时间：2026-10-21。本文用于正在开发的远程版本；生产域名、外部身份提供商、长期托管环境和密钥挂载位置尚未配置。它不是已部署或已连接 Dot 的证明。
+更新时间：2026-10-21。本文对应 0.4.0 远程候选版本。Windows AppContainer 与 Linux CI 已完成下述验证；生产域名、外部身份提供商、长期托管环境和密钥挂载位置尚未配置，尚未部署或连接真实 Dot。
 
 目标是把 QQmail 做成通过 OAuth 连接的远程 HTTPS MCP 插件，使 ChatGPT / Dot 能调用固定邮箱工具。邮箱服务运行在操作者管理的长期托管环境，不依赖用户 Windows 桌面或 Windows 确认窗口。Dot 的电脑不承担本方案的生产托管和持久化职责。
 
@@ -47,21 +47,27 @@ OAuth 连接同意不等于用户逐封确认了邮件。云端模式使用用�
 | 负载均衡导致重复发送或授权额度分叉 | 首版只启一个服务进程/写入者；多实例、滚动并存和自动扩容在共享原子状态与幂等设计验收前禁用 |
 | 日志泄漏邮箱和令牌 | 日志不记录 Authorization、QQ 授权码、邮件正文、完整收件人列表、grant ID 或秘密配置；诊断证据保留在受限开发存储 |
 
-这些是验收约束，不表示源码已经逐项通过。最终判断依据下面的部署验收矩阵及对应版本证据。
+这些约束已有对应实现和合成回归证据，真实部署仍须按 [验收矩阵](DEPLOYMENT.md#cloud-readiness-矩阵) 独立完成，不能把实现测试等同于公网或真实邮箱通过。
 
 ## 证据与当前状态
 
-项目本轮已报告本地合成测试 361 项通过。这是 Windows 本地改造基线的结果；本文件没有独立运行这些测试，也不把它作为云端 OAuth、HTTPS、外部 IdP、Linux 运行或 Dot 连接验收。
+本轮证据汇总如下，不沿用旧本地版本测试数量作为云端结果。Windows 测试曾发现真实存储路径问题，生产修复后又遇到测试清理问题；两次失败均保留，不能改写成首次通过。
 
 | 层级 | 本文件编写时状态 |
 | --- | --- |
-| 本地邮箱逻辑及内存授权基线 | 已有 361 项合成结果报告；须引用原证据，不替代云验收 |
-| 云端认证/HTTP/持久化实现 | 开发中；以本轮最终源码及新测试记录为准 |
+| Windows AppContainer 类型检查 | `cloud-compile-003`：PASS |
+| Windows AppContainer 测试 | `cloud-tests-002`：472 项中 469 通过、1 项 junction 清理 `ENOTEMPTY` 失败、2 项 POSIX 跳过；仅修测试清理且保留原断言后，`cloud-storage-003`：24 项中 22 通过、2 项 POSIX 跳过。综合 470 个已执行用例通过，**不是单次全套 470 项通过** |
+| 构建与真实 bundle 冒烟 | `cloud-build-001`：PASS；`cloud-bundle-002`：实际 bundle 启动、health、资源元数据、无认证 POST 在业务前拒绝均 PASS |
+| Linux CI | 提交 `ec440ee4` 的 npm ci、typecheck、选定 cloud/authorization 测试及 build 全部成功；包含两项 POSIX 测试，范围不是 Windows 全套测试。见 [Actions 运行记录](https://github.com/FredericaBernkastel1/QQmail-plugin/actions/runs/39554963087) |
+| 依赖与清单工具 | 本轮 181 个公开依赖公告检查匹配 0 条；纯 Python 清单工具 34 项检查及合成 CLI 生成通过。公告为当时数据库查询结果，不代表不存在未知漏洞 |
 | 公网 HTTPS、外部 IdP、域名与密钥配置 | 待操作者提供和部署 |
+| Docker 镜像构建、容器运行与实际持久卷 | 未运行；Linux CI 不替代容器或生产文件系统验收 |
 | ChatGPT / Dot 安装、OAuth 连接、scope 升级及写操作许可 | 未验证 |
 | QQ 服务真实收发、垃圾箱和旗标行为 | 未验证；本开发轮不接触真实邮箱 |
 | 长期运行、故障恢复、监控与限额 | 待部署环境验收 |
 
 具体部署输入、发布步骤和逐项验收见 [DEPLOYMENT.md](DEPLOYMENT.md)。既有 Windows 0.3.0/0.4.0 包、原生窗口测试及安装记录继续保留，不应被本云端设计覆盖或重新标记为云端通过。
+
+部署素材包括默认只读且秘密占位无效的 [配置样例](config.example.json)、不会自动启用的 [委托结构样例](delegation.example.json)，以及只复制已构建产物的 [Dockerfile](Dockerfile) 和 [.dockerignore](.dockerignore)。公开源码仓库中的 `scripts/render-cloud-plugin.py` 可生成不含秘密的远程连接清单；本地 QQmail 开发工作区保存于 `tools/render-cloud-plugin.py`。两种路径的运行步骤与未验收边界见部署文档。
 
 官方远程认证要求 OAuth 2.1、受保护资源元数据、PKCE 及每请求令牌验证；本项目选择外部 IdP，而非自建签发器。[插件认证](https://developers.openai.com/plugins/build/auth)
