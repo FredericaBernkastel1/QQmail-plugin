@@ -1,0 +1,1463 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>QQ 邮箱设置</title>
+    <style nonce="__QQ_MAIL_CSP_NONCE__">
+      :root {
+        color-scheme: light;
+        --canvas: #f4f5f7;
+        --surface: #ffffff;
+        --surface-muted: #f8f9fa;
+        --text: #202124;
+        --text-muted: #62666d;
+        --border: #dfe1e5;
+        --border-strong: #c8ccd2;
+        --accent: #cf2e2e;
+        --accent-hover: #ad2424;
+        --accent-soft: #fff1f0;
+        --success: #16794a;
+        --success-soft: #eaf7f0;
+        --warning: #8a5a00;
+        --warning-soft: #fff5da;
+        --danger: #b42318;
+        --danger-soft: #fff0ee;
+        --focus: #2563a6;
+        --shadow: 0 1px 2px rgb(32 33 36 / 8%);
+        font-family:
+          Inter, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+        font-size: 15px;
+        letter-spacing: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--canvas);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--text);
+        background: var(--canvas);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      svg {
+        display: block;
+        flex: 0 0 auto;
+      }
+
+      .app-header {
+        position: sticky;
+        z-index: 10;
+        top: 0;
+        border-bottom: 1px solid var(--border);
+        background: rgb(255 255 255 / 96%);
+        backdrop-filter: blur(10px);
+      }
+
+      .header-inner {
+        display: flex;
+        min-height: 64px;
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 0 24px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .brand {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        color: #ffffff;
+        background: var(--accent);
+        place-items: center;
+      }
+
+      .brand h1 {
+        overflow: hidden;
+        margin: 0;
+        font-size: 18px;
+        font-weight: 650;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .brand p {
+        margin: 3px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .overall-status {
+        display: inline-flex;
+        min-height: 30px;
+        padding: 5px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        align-items: center;
+        gap: 7px;
+        color: var(--text-muted);
+        background: var(--surface-muted);
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .overall-status::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #8b9098;
+        content: "";
+      }
+
+      .overall-status[data-state="ok"] {
+        border-color: #afd9c4;
+        color: var(--success);
+        background: var(--success-soft);
+      }
+
+      .overall-status[data-state="ok"]::before {
+        background: var(--success);
+      }
+
+      .overall-status[data-state="error"] {
+        border-color: #efb4ae;
+        color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      main {
+        width: min(100% - 32px, 1040px);
+        margin: 28px auto 112px;
+      }
+
+      .provider-bar {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 16px;
+        padding: 5px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #e9ebee;
+      }
+
+      .provider-option {
+        display: flex;
+        min-width: 0;
+        min-height: 42px;
+        padding: 8px 12px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .provider-option:hover {
+        background: rgb(255 255 255 / 60%);
+      }
+
+      .provider-option[aria-checked="true"] {
+        border-color: var(--border-strong);
+        color: var(--accent);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .settings-sheet {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .settings-section {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 32px;
+        padding: 28px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .settings-section:last-child {
+        border-bottom: 0;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
+      .section-heading p {
+        margin: 7px 0 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .section-content {
+        min-width: 0;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .field-grid + .field-grid,
+      .field-grid + .field,
+      .field + .field-grid {
+        margin-top: 18px;
+      }
+
+      .field {
+        min-width: 0;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
+      }
+
+      .field label,
+      .field-label {
+        display: flex;
+        min-height: 20px;
+        margin-bottom: 7px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .field-note {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 400;
+      }
+
+      input,
+      select {
+        width: 100%;
+        height: 42px;
+        padding: 9px 11px;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        outline: none;
+        color: var(--text);
+        background: var(--surface);
+      }
+
+      input::placeholder {
+        color: #92969d;
+      }
+
+      input:focus,
+      select:focus,
+      button:focus-visible,
+      summary:focus-visible {
+        border-color: var(--focus);
+        outline: 2px solid rgb(37 99 166 / 20%);
+        outline-offset: 1px;
+      }
+
+      input:disabled,
+      select:disabled,
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+
+      .password-control {
+        position: relative;
+      }
+
+      .password-control input {
+        padding-right: 44px;
+      }
+
+      .icon-button {
+        display: inline-grid;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        place-items: center;
+        color: var(--text-muted);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .password-control .icon-button {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+      }
+
+      .credential-state {
+        display: flex;
+        margin-top: 8px;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .credential-state[data-stored="true"] {
+        color: var(--success);
+      }
+
+      .advanced {
+        margin-top: 22px;
+        border-top: 1px solid var(--border);
+      }
+
+      .advanced summary {
+        display: flex;
+        min-height: 48px;
+        padding: 12px 2px;
+        border-radius: 4px;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 650;
+        list-style: none;
+      }
+
+      .advanced summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .advanced summary svg {
+        transition: transform 150ms ease;
+      }
+
+      .advanced[open] summary svg {
+        transform: rotate(90deg);
+      }
+
+      .advanced-body {
+        padding: 4px 0 2px;
+      }
+
+      .server-panel + .server-panel {
+        margin-top: 24px;
+        padding-top: 22px;
+        border-top: 1px dashed var(--border);
+      }
+
+      .server-title {
+        display: flex;
+        margin: 0 0 14px;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .server-grid {
+        display: grid;
+        grid-template-columns: minmax(180px, 2fr) minmax(90px, 0.7fr) minmax(130px, 1fr);
+        gap: 12px;
+      }
+
+      .toggle-row {
+        display: flex;
+        min-height: 42px;
+        margin-top: 12px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .security-enforced {
+        display: flex;
+        min-height: 40px;
+        margin-top: 10px;
+        align-items: center;
+        gap: 7px;
+        color: var(--success);
+        font-size: 12px;
+      }
+
+      .toggle {
+        position: relative;
+        display: inline-flex;
+        width: 42px;
+        height: 24px;
+        flex: 0 0 auto;
+      }
+
+      .toggle input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .toggle-track {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #9da2aa;
+        border-radius: 999px;
+        background: #c9cdd2;
+        transition: background 140ms ease;
+      }
+
+      .toggle-track::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+        content: "";
+        transition: transform 140ms ease;
+      }
+
+      .toggle input:checked + .toggle-track {
+        border-color: var(--success);
+        background: var(--success);
+      }
+
+      .toggle input:checked + .toggle-track::after {
+        transform: translateX(18px);
+      }
+
+      .toggle input:focus-visible + .toggle-track {
+        outline: 2px solid rgb(37 99 166 / 28%);
+        outline-offset: 2px;
+      }
+
+      .connection-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .connection-status {
+        min-height: 78px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface-muted);
+      }
+
+      .connection-status header {
+        display: flex;
+        margin-bottom: 7px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .connection-status strong {
+        font-size: 13px;
+      }
+
+      .state-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .state-label::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #8b9098;
+        content: "";
+      }
+
+      .connection-status[data-state="ok"] {
+        border-color: #afd9c4;
+        background: var(--success-soft);
+      }
+
+      .connection-status[data-state="ok"] .state-label {
+        color: var(--success);
+      }
+
+      .connection-status[data-state="ok"] .state-label::before {
+        background: var(--success);
+      }
+
+      .connection-status[data-state="error"] {
+        border-color: #efb4ae;
+        background: var(--danger-soft);
+      }
+
+      .connection-status[data-state="error"] .state-label {
+        color: var(--danger);
+      }
+
+      .connection-status[data-state="error"] .state-label::before {
+        background: var(--danger);
+      }
+
+      .connection-message {
+        margin: 0;
+        overflow-wrap: anywhere;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .action-bar {
+        position: fixed;
+        z-index: 9;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-top: 1px solid var(--border);
+        background: rgb(255 255 255 / 97%);
+        box-shadow: 0 -3px 14px rgb(32 33 36 / 7%);
+        backdrop-filter: blur(10px);
+      }
+
+      .action-inner {
+        display: flex;
+        min-height: 76px;
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 12px 24px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .action-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 40px;
+        padding: 8px 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--surface);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .button:hover:not(:disabled) {
+        border-color: #9aa0a8;
+        background: var(--surface-muted);
+      }
+
+      .button.primary {
+        border-color: var(--accent);
+        color: #ffffff;
+        background: var(--accent);
+      }
+
+      .button.primary:hover:not(:disabled) {
+        border-color: var(--accent-hover);
+        background: var(--accent-hover);
+      }
+
+      .button.danger {
+        border-color: #efb4ae;
+        color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      .button .spinner {
+        display: none;
+        animation: spin 800ms linear infinite;
+      }
+
+      .button[data-busy="true"] .button-icon {
+        display: none;
+      }
+
+      .button[data-busy="true"] .spinner {
+        display: block;
+      }
+
+      .toast {
+        position: fixed;
+        z-index: 20;
+        top: 76px;
+        left: 50%;
+        display: flex;
+        width: min(calc(100% - 32px), 520px);
+        min-height: 44px;
+        padding: 11px 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        background: var(--surface);
+        box-shadow: 0 8px 24px rgb(32 33 36 / 18%);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -8px);
+        transition:
+          opacity 150ms ease,
+          transform 150ms ease;
+      }
+
+      .toast[data-visible="true"] {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .toast[data-kind="ok"] {
+        border-color: #afd9c4;
+      }
+
+      .toast[data-kind="error"] {
+        border-color: #efb4ae;
+      }
+
+      .toast-message {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 13px;
+      }
+
+      .sr-only {
+        position: absolute;
+        overflow: hidden;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        border: 0;
+        margin: -1px;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .header-inner {
+          min-height: 58px;
+          padding: 0 16px;
+        }
+
+        .brand p {
+          display: none;
+        }
+
+        .overall-status {
+          max-width: 116px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        main {
+          width: min(100% - 20px, 620px);
+          margin-top: 16px;
+          margin-bottom: 166px;
+        }
+
+        .provider-bar {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .settings-section {
+          grid-template-columns: 1fr;
+          gap: 18px;
+          padding: 22px 18px;
+        }
+
+        .field-grid,
+        .connection-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .server-grid {
+          grid-template-columns: minmax(0, 1fr) 100px;
+        }
+
+        .server-grid .field:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .action-inner {
+          min-height: 128px;
+          padding: 10px;
+          flex-direction: column-reverse;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .action-group {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .action-group:last-child .button.primary {
+          grid-column: 2;
+        }
+
+        .button {
+          min-width: 0;
+          padding-inline: 10px;
+        }
+
+        .toast {
+          top: 66px;
+        }
+      }
+
+      @media (max-width: 390px) {
+        .brand-mark {
+          width: 32px;
+          height: 32px;
+        }
+
+        .brand h1 {
+          font-size: 16px;
+        }
+
+        .overall-status {
+          max-width: 104px;
+          padding-inline: 8px;
+          font-size: 12px;
+        }
+
+        .provider-option {
+          padding-inline: 6px;
+          font-size: 13px;
+        }
+
+        .settings-section {
+          padding-inline: 15px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+          </div>
+          <div>
+            <h1>QQ 邮箱设置</h1>
+            <p>本机 IMAP 与 SMTP 连接</p>
+          </div>
+        </div>
+        <div id="overall-status" class="overall-status" data-state="unknown" role="status">正在读取</div>
+      </div>
+    </header>
+
+    <main>
+      <section id="profiles-section" class="settings-section" aria-labelledby="profiles-heading">
+        <div class="section-heading"><h2 id="profiles-heading">账户档案</h2><p>切换会使旧邮件引用和草稿失效。新建使用下方公开设置，授权码需另行保存。</p></div>
+        <div class="field"><label for="profile-select">已保存账户</label><select id="profile-select" disabled></select></div>
+        <div class="field"><label for="profile-name">新档案名称</label><input id="profile-name" type="text" maxlength="80" placeholder="例如：工作邮箱" /></div>
+        <div class="field"><label for="profile-replacement">删除当前账户后切换到</label><select id="profile-replacement" disabled></select></div>
+        <div class="action-group">
+          <button id="profile-switch" class="button" type="button" disabled>切换账户</button>
+          <button id="profile-create" class="button" type="button" disabled>新建并切换</button>
+          <button id="profile-delete" class="button danger" type="button" disabled>删除所选档案</button>
+          <button id="profile-refresh" class="button" type="button">重新加载</button>
+        </div>
+        <p id="profile-current" role="status">正在读取账户档案。</p>
+      </section>
+      <div id="provider-bar" class="provider-bar" role="radiogroup" aria-label="邮箱类型">
+        <button class="provider-option" type="button" role="radio" data-provider="personal" aria-checked="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          个人邮箱
+        </button>
+        <button class="provider-option" type="button" role="radio" data-provider="enterprise" aria-checked="false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 21h18"></path><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path><path d="M9 9h6"></path><path d="M9 13h6"></path><path d="M9 17h6"></path>
+          </svg>
+          企业邮箱
+        </button>
+        <button class="provider-option" type="button" role="radio" data-provider="xinchuang" aria-checked="false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path><path d="m9 12 2 2 4-4"></path>
+          </svg>
+          信创邮箱
+        </button>
+        <button class="provider-option" type="button" role="radio" data-provider="custom" aria-checked="false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          自定义
+        </button>
+      </div>
+
+      <form id="settings-form" class="settings-sheet" autocomplete="off" novalidate>
+        <input id="provider" name="provider" type="hidden" value="personal" />
+
+        <section class="settings-section" aria-labelledby="account-heading">
+          <div class="section-heading">
+            <h2 id="account-heading">账号</h2>
+            <p>填写用于登录和发信的邮箱身份。</p>
+          </div>
+          <div class="section-content">
+            <div class="field-grid">
+              <div class="field">
+                <label for="email">邮箱地址</label>
+                <input id="email" name="email" type="email" inputmode="email" maxlength="320" autocomplete="username" placeholder="name@qq.com" required />
+              </div>
+              <div class="field">
+                <label for="display-name">发件人名称</label>
+                <input id="display-name" name="displayName" type="text" maxlength="200" placeholder="姓名或团队名称" />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field full">
+                <div class="field-label">
+                  <label for="authorization-code">邮箱授权码</label>
+                  <span class="field-note">账户或服务器改变后需重新保存授权码</span>
+                </div>
+                <div class="password-control">
+                  <input id="authorization-code" type="password" maxlength="1024" autocomplete="new-password" placeholder="输入授权码" />
+                  <button id="toggle-secret" class="icon-button" type="button" title="显示授权码" aria-label="显示授权码" aria-pressed="false">
+                    <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2.06 12.35a1 1 0 0 1 0-.7C3.64 7.6 7.56 5 12 5c4.44 0 8.36 2.6 9.94 6.65a1 1 0 0 1 0 .7C20.36 16.4 16.44 19 12 19c-4.44 0-8.36-2.6-9.94-6.65"></path><circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+                <div id="credential-state" class="credential-state" data-stored="false">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <span>尚未保存授权码</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section" aria-labelledby="server-heading">
+          <div class="section-heading">
+            <h2 id="server-heading">服务器</h2>
+            <p>预设会自动填写推荐端口，也可以展开后调整。</p>
+          </div>
+          <div class="section-content">
+            <div class="connection-grid" aria-label="连接状态">
+              <article id="imap-status" class="connection-status" data-state="unknown">
+                <header><strong>IMAP 收件</strong><span class="state-label">未测试</span></header>
+                <p class="connection-message">等待连接测试</p>
+              </article>
+              <article id="smtp-status" class="connection-status" data-state="unknown">
+                <header><strong>SMTP 发件</strong><span class="state-label">未测试</span></header>
+                <p class="connection-message">等待连接测试</p>
+              </article>
+              <article id="folders-status" class="connection-status" data-state="unknown">
+                <header><strong>邮箱目录</strong><span class="state-label">未检查</span></header>
+                <p class="connection-message">等待目录发现</p>
+              </article>
+            </div>
+
+            <details id="advanced-settings" class="advanced">
+              <summary>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                高级服务器参数
+              </summary>
+              <div class="advanced-body">
+                <div class="server-panel">
+                  <h3 class="server-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 7 9 6 9-6"></path><rect width="18" height="14" x="3" y="5" rx="2"></rect></svg>
+                    IMAP
+                  </h3>
+                  <div class="server-grid">
+                    <div class="field"><label for="imap-host">服务器</label><input id="imap-host" name="imapHost" maxlength="253" required /></div>
+                    <div class="field"><label for="imap-port">端口</label><input id="imap-port" name="imapPort" type="number" min="1" max="65535" required /></div>
+                    <div class="field"><label for="imap-security">连接安全</label><select id="imap-security" name="imapSecurity"><option value="tls">TLS</option><option value="starttls">STARTTLS</option></select></div>
+                  </div>
+                  <div class="security-enforced">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    服务器证书验证始终开启
+                  </div>
+                </div>
+
+                <div class="server-panel">
+                  <h3 class="server-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+                    SMTP
+                  </h3>
+                  <div class="server-grid">
+                    <div class="field"><label for="smtp-host">服务器</label><input id="smtp-host" name="smtpHost" maxlength="253" required /></div>
+                    <div class="field"><label for="smtp-port">端口</label><input id="smtp-port" name="smtpPort" type="number" min="1" max="65535" required /></div>
+                    <div class="field"><label for="smtp-security">连接安全</label><select id="smtp-security" name="smtpSecurity"><option value="tls">TLS</option><option value="starttls">STARTTLS</option></select></div>
+                  </div>
+                  <div class="security-enforced">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    服务器证书验证始终开启
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="settings-section" aria-labelledby="folder-heading">
+          <div class="section-heading">
+            <h2 id="folder-heading">目录映射</h2>
+            <p>名称需与 IMAP 中显示的邮箱目录一致。</p>
+          </div>
+          <div class="section-content">
+            <div class="field-grid">
+              <div class="field"><label for="folder-inbox">收件箱</label><input id="folder-inbox" name="folderInbox" maxlength="1024" required /></div>
+              <div class="field"><label for="folder-sent">已发送</label><input id="folder-sent" name="folderSent" maxlength="1024" required /></div>
+              <div class="field"><label for="folder-drafts">草稿箱</label><input id="folder-drafts" name="folderDrafts" maxlength="1024" required /></div>
+              <div class="field"><label for="folder-trash">已删除</label><input id="folder-trash" name="folderTrash" maxlength="1024" required /></div>
+              <div class="field"><label for="folder-spam">垃圾邮件</label><input id="folder-spam" name="folderSpam" maxlength="1024" required /></div>
+              <div class="field"><label for="folder-archive">归档</label><input id="folder-archive" name="folderArchive" maxlength="1024" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section" aria-labelledby="download-heading">
+          <div class="section-heading">
+            <h2 id="download-heading">附件下载</h2>
+            <p>附件仅能写入这个本地目录。</p>
+          </div>
+          <div class="section-content">
+            <div class="field">
+              <label for="download-directory">下载目录</label>
+              <input id="download-directory" name="downloadDirectory" type="text" maxlength="4096" placeholder="C:\Users\用户名\Downloads\QQ Mail" required />
+            </div>
+          </div>
+        </section>
+      </form>
+    </main>
+
+    <footer class="action-bar">
+      <div class="action-inner">
+        <div class="action-group">
+          <button id="test-imap" class="button" type="button">
+            <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
+            测试 IMAP
+          </button>
+          <button id="test-smtp" class="button" type="button">
+            <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
+            测试 SMTP
+          </button>
+        </div>
+        <div class="action-group">
+          <button id="clear-credential" class="button danger" type="button">
+            <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
+            <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
+            清除授权码
+          </button>
+          <button id="save-settings" class="button primary" type="submit" form="settings-form">
+            <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
+            <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
+            保存设置
+          </button>
+        </div>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast" data-visible="false" data-kind="ok" role="status" aria-live="polite">
+      <svg id="toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+      <span id="toast-message" class="toast-message"></span>
+    </div>
+
+    <script id="qq-mail-bootstrap" type="application/json" nonce="__QQ_MAIL_CSP_NONCE__">{"apiBase":__QQ_MAIL_API_BASE__,"token":__QQ_MAIL_SESSION_TOKEN__}</script>
+    <script nonce="__QQ_MAIL_CSP_NONCE__">/* QQ_MAIL_APP_BUNDLE_START */
+__QQ_MAIL_APP_BUNDLE__
+/* QQ_MAIL_APP_BUNDLE_END */</script>
+    <script nonce="__QQ_MAIL_CSP_NONCE__">
+      (() => {
+        "use strict";
+
+        const bootstrap = JSON.parse(document.getElementById("qq-mail-bootstrap").textContent);
+        const fragment = new URLSearchParams(window.location.hash.slice(1));
+        const apiBase = String(bootstrap.apiBase || window.location.origin).replace(/\/$/, "");
+        const sessionToken = String(bootstrap.token || fragment.get("session") || "");
+        if (window.location.hash) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+
+        const byId = (id) => document.getElementById(id);
+        const form = byId("settings-form");
+        const credentialInput = byId("authorization-code");
+        const credentialState = byId("credential-state");
+        const clearButton = byId("clear-credential");
+        const actionButtons = [byId("test-imap"), byId("test-smtp"), clearButton, byId("save-settings"), byId("profile-switch"), byId("profile-create"), byId("profile-delete"), byId("profile-refresh")];
+        let toastTimer;
+        let credentialStored = false;
+        let settingsBusy = false;
+        let accountScope;
+        let accountRevision;
+        let profileState;
+
+        const folderDefaults = {
+          inbox: "INBOX",
+          sent: "Sent Messages",
+          drafts: "Drafts",
+          trash: "Deleted Messages",
+          spam: "Junk",
+          archive: "Archive",
+        };
+
+        const presets = {
+          personal: {
+            emailPlaceholder: "name@qq.com",
+            imap: { host: "imap.qq.com", port: 993, security: "tls", rejectUnauthorized: true },
+            smtp: { host: "smtp.qq.com", port: 465, security: "tls", rejectUnauthorized: true },
+          },
+          enterprise: {
+            emailPlaceholder: "name@company.com",
+            imap: { host: "imap.exmail.qq.com", port: 993, security: "tls", rejectUnauthorized: true },
+            smtp: { host: "smtp.exmail.qq.com", port: 465, security: "tls", rejectUnauthorized: true },
+          },
+          xinchuang: {
+            emailPlaceholder: "name@organization.cn",
+            imap: { host: "xcimap.exmail.qq.com", port: 993, security: "tls", rejectUnauthorized: true },
+            smtp: { host: "xcsmtp.exmail.qq.com", port: 465, security: "tls", rejectUnauthorized: true },
+          },
+          custom: { emailPlaceholder: "name@example.com" },
+        };
+
+        function showToast(message, kind = "ok") {
+          const toast = byId("toast");
+          byId("toast-message").textContent = message;
+          toast.dataset.kind = kind;
+          toast.dataset.visible = "true";
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => {
+            toast.dataset.visible = "false";
+          }, 4200);
+        }
+
+        function setPageEnabled(enabled) {
+          for (const button of actionButtons) button.disabled = !enabled;
+          for (const element of form.elements) element.disabled = !enabled;
+          for (const button of document.querySelectorAll(".provider-option")) button.disabled = !enabled;
+        }
+
+        async function api(path, options = {}) {
+          if (!sessionToken || !apiBase) {
+            throw new Error("设置会话已过期，请从 Codex 重新打开。");
+          }
+          const headers = new Headers(options.headers || {});
+          headers.set("Authorization", `Bearer ${sessionToken}`);
+          if (options.body !== undefined && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+          }
+          const response = await fetch(`${apiBase}${path}`, { ...options, headers, cache: "no-store" });
+          const value = await response.json().catch(() => ({ message: "服务器返回了无效响应。" }));
+          if (!response.ok) throw new Error(value.message || "请求失败，请重试。");
+          return value;
+        }
+
+        function selectProvider(provider, applyPreset) {
+          const preset = presets[provider] || presets.custom;
+          byId("provider").value = provider;
+          byId("email").placeholder = preset.emailPlaceholder;
+          for (const button of document.querySelectorAll(".provider-option")) {
+            button.setAttribute("aria-checked", String(button.dataset.provider === provider));
+          }
+          if (applyPreset && preset.imap && preset.smtp) {
+            setEndpoint("imap", preset.imap);
+            setEndpoint("smtp", preset.smtp);
+          }
+        }
+
+        function setEndpoint(kind, endpoint) {
+          byId(`${kind}-host`).value = endpoint.host;
+          byId(`${kind}-port`).value = String(endpoint.port);
+          byId(`${kind}-security`).value = endpoint.security;
+        }
+
+        function setCredentialStored(stored) {
+          credentialStored = Boolean(stored);
+          credentialState.dataset.stored = String(credentialStored);
+          credentialState.querySelector("span").textContent = credentialStored
+            ? "授权码已安全保存"
+            : "尚未保存授权码";
+          clearButton.disabled = settingsBusy || !credentialStored;
+        }
+
+        function updateConnection(kind, status) {
+          const panel = byId(`${kind}-status`);
+          const normalized = status || { state: "unknown", message: "等待连接测试" };
+          const labels = { unknown: "未测试", ok: "连接正常", error: "连接失败" };
+          panel.dataset.state = normalized.state || "unknown";
+          panel.querySelector(".state-label").textContent = labels[normalized.state] || labels.unknown;
+          panel.querySelector(".connection-message").textContent = normalized.message || "等待连接测试";
+        }
+
+        function applyConfig(config) {
+          accountScope = config.accountScope;
+          accountRevision = config.accountRevision;
+          selectProvider(config.provider || "personal", false);
+          byId("email").value = config.email || "";
+          byId("display-name").value = config.displayName || "";
+          setEndpoint("imap", config.imap);
+          setEndpoint("smtp", config.smtp);
+          const folders = { ...folderDefaults, ...(config.folders || {}) };
+          for (const [name, value] of Object.entries(folders)) {
+            const input = byId(`folder-${name}`);
+            if (input) input.value = value || "";
+          }
+          byId("download-directory").value = config.downloadDirectory || "";
+          credentialInput.value = "";
+          setCredentialStored(config.credentialStored);
+        }
+
+        function applyStatus(status) {
+          if (accountScope && status.accountScope !== accountScope) {
+            for (const kind of ["imap", "smtp", "folders"]) updateConnection(kind);
+            showToast("账户已变化，请重新加载后查看连接状态。", "error");
+            return;
+          }
+          const overall = byId("overall-status");
+          overall.dataset.state = status.configured && status.credentialStored ? "ok" : "unknown";
+          overall.textContent = status.configured && status.credentialStored ? "已配置" : "需要设置";
+          setCredentialStored(status.credentialStored);
+          updateConnection("imap", status.imap);
+          updateConnection("smtp", status.smtp);
+          updateConnection("folders", status.folders);
+        }
+
+        function collectConfig() {
+          const value = {
+            provider: byId("provider").value,
+            email: byId("email").value.trim(),
+            displayName: byId("display-name").value.trim(),
+            imap: {
+              host: byId("imap-host").value.trim(),
+              port: Number(byId("imap-port").value),
+              security: byId("imap-security").value,
+              rejectUnauthorized: true,
+            },
+            smtp: {
+              host: byId("smtp-host").value.trim(),
+              port: Number(byId("smtp-port").value),
+              security: byId("smtp-security").value,
+              rejectUnauthorized: true,
+            },
+            folders: {
+              inbox: byId("folder-inbox").value.trim(),
+              sent: byId("folder-sent").value.trim(),
+              drafts: byId("folder-drafts").value.trim(),
+              trash: byId("folder-trash").value.trim(),
+              spam: byId("folder-spam").value.trim(),
+              archive: byId("folder-archive").value.trim(),
+            },
+            downloadDirectory: byId("download-directory").value.trim(),
+          };
+          return value;
+        }
+
+        async function submitCredentialIfPresent(accountRevision) {
+          if (!credentialInput.value) return false;
+          const bytes = new TextEncoder().encode(credentialInput.value);
+          credentialInput.value = "";
+          const result = await api("/api/credential", {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream", "X-QQ-Mail-Account-Revision": accountRevision },
+            body: bytes,
+          });
+          if (!result.ok) throw new Error(result.message || "授权码保存失败。");
+          setCredentialStored(true);
+          return true;
+        }
+
+        async function saveCurrentConfig() {
+          const result = await api("/api/save", {
+            method: "POST",
+            body: JSON.stringify({ config: collectConfig(), ...(accountRevision ? { expectedRevision: accountRevision } : {}) }),
+          });
+          if (!result.ok) throw new Error(result.message || "设置保存失败。");
+          accountRevision = result.accountRevision;
+          return result;
+        }
+
+        function validateForm() {
+          if (form.checkValidity()) return true;
+          form.reportValidity();
+          showToast("请先补全必填设置。", "error");
+          return false;
+        }
+
+        async function runBusy(button, operation) {
+          if (settingsBusy) return;
+          settingsBusy = true;
+          const controls = Array.from(document.querySelectorAll("input, select, textarea, button"));
+          const disabled = controls.map(control => control.disabled);
+          controls.forEach(control => { control.disabled = true; });
+          button.dataset.busy = "true";
+          try {
+            await operation();
+          } finally {
+            settingsBusy = false;
+            controls.forEach((control, index) => { control.disabled = disabled[index]; });
+            button.dataset.busy = "false";
+            button.disabled = button === clearButton && !credentialStored;
+            clearButton.disabled = !credentialStored;
+            updateProfileControls();
+          }
+        }
+
+        async function testConnection(target, button) {
+          if (!validateForm()) return;
+          await runBusy(button, async () => {
+            try {
+              const saved = await saveCurrentConfig();
+              await submitCredentialIfPresent(saved.accountRevision);
+              const current = await api("/api/config");
+              applyConfig(current);
+              const result = await api("/api/test", {
+                method: "POST",
+                body: JSON.stringify({ target, config: collectConfig(), ...(accountRevision ? { expectedRevision: accountRevision } : {}) }),
+              });
+              if (!accountScope || result.accountScope === accountScope) {
+                if (result.imap) updateConnection("imap", result.imap);
+                if (result.smtp) updateConnection("smtp", result.smtp);
+                if (result.folders) updateConnection("folders", result.folders);
+              } else {
+                for (const kind of ["imap", "smtp", "folders"]) updateConnection(kind);
+              }
+              await loadProfiles();
+              showToast(result.message, result.ok ? "ok" : "error");
+            } catch (error) {
+              updateConnection(target, { state: "error", message: error.message });
+              showToast(error.message, "error");
+            }
+          });
+        }
+
+        async function refreshStatus() {
+          const config = await api("/api/config");
+          applyConfig(config);
+          const status = await api("/api/status");
+          applyStatus(status);
+          await loadProfiles();
+        }
+
+        function updateProfileControls() {
+          const selected = byId("profile-select").value;
+          byId("profile-select").disabled = settingsBusy || !profileState;
+          byId("profile-replacement").disabled = settingsBusy || !profileState || selected !== profileState.activeProfileId;
+          byId("profile-switch").disabled = settingsBusy || !profileState || !selected || selected === profileState.activeProfileId;
+          byId("profile-delete").disabled = settingsBusy || !profileState || !selected;
+          byId("profile-create").disabled = settingsBusy || !profileState || profileState.profiles.length >= 20;
+        }
+
+        function fillReplacements() {
+          const select = byId("profile-replacement");
+          select.replaceChildren();
+          for (const profile of profileState?.profiles || []) {
+            if (profile.id === byId("profile-select").value) continue;
+            const option = document.createElement("option");
+            option.value = profile.id; option.textContent = `${profile.name} — ${profile.email}`;
+            select.append(option);
+          }
+          updateProfileControls();
+        }
+
+        async function loadProfiles() {
+          try {
+            const value = await api("/api/profiles");
+            profileState = value;
+            const select = byId("profile-select"); select.replaceChildren();
+            for (const profile of value.profiles) {
+              const option = document.createElement("option"); option.value = profile.id;
+              option.textContent = `${profile.name} — ${profile.email}${profile.id === value.activeProfileId ? "（当前）" : ""}`;
+              select.append(option);
+            }
+            select.value = value.activeProfileId || "";
+            const active = value.profiles.find(profile => profile.id === value.activeProfileId);
+            byId("profile-current").textContent = active ? `当前账户：${active.name} · ${active.email}` : "尚无账户，可保存下方设置或新建档案。";
+            fillReplacements();
+          } catch {
+            profileState = undefined;
+            byId("profile-current").textContent = "无法读取账户档案，请重新加载。";
+            updateProfileControls();
+          }
+        }
+
+        async function changeProfile(action, button) {
+          if (!profileState) return;
+          const body = { action, expectedRevision: profileState.revision };
+          if (action === "create") {
+            if (!validateForm()) return;
+            body.name = byId("profile-name").value.trim();
+            if (!body.name) { showToast("请输入新档案名称。", "error"); return; }
+            body.config = collectConfig();
+          } else {
+            body.profileId = byId("profile-select").value;
+            if (action === "delete" && body.profileId === profileState.activeProfileId && profileState.profiles.length > 1) {
+              body.replacementProfileId = byId("profile-replacement").value;
+            }
+          }
+          await runBusy(button, async () => {
+            try {
+              const result = await api("/api/profiles", { method: "POST", body: JSON.stringify(body) });
+              if (!result.ok) throw new Error(result.message);
+              credentialInput.value = "";
+              await refreshStatus();
+              showToast(result.message);
+            } catch (error) { showToast(error.message, "error"); }
+          });
+        }
+
+        async function initialize() {
+          if (!sessionToken) {
+            setPageEnabled(false);
+            const overall = byId("overall-status");
+            overall.dataset.state = "error";
+            overall.textContent = "会话已过期";
+            showToast("设置会话已过期，请从 Codex 重新打开。", "error");
+            return;
+          }
+          try {
+            const [config, status] = await Promise.all([api("/api/config"), api("/api/status")]);
+            applyConfig(config);
+            applyStatus(status);
+            await loadProfiles();
+          } catch (error) {
+            setPageEnabled(false);
+            const overall = byId("overall-status");
+            overall.dataset.state = "error";
+            overall.textContent = "无法读取";
+            showToast(error.message, "error");
+          }
+        }
+
+        for (const button of document.querySelectorAll(".provider-option")) {
+          button.addEventListener("click", () => selectProvider(button.dataset.provider, true));
+        }
+
+        byId("toggle-secret").addEventListener("click", (event) => {
+          const button = event.currentTarget;
+          const showing = credentialInput.type === "text";
+          credentialInput.type = showing ? "password" : "text";
+          button.setAttribute("aria-pressed", String(!showing));
+          button.setAttribute("aria-label", showing ? "显示授权码" : "隐藏授权码");
+          button.title = showing ? "显示授权码" : "隐藏授权码";
+          credentialInput.focus();
+        });
+
+        byId("test-imap").addEventListener("click", (event) => testConnection("imap", event.currentTarget));
+        byId("test-smtp").addEventListener("click", (event) => testConnection("smtp", event.currentTarget));
+        byId("profile-select").addEventListener("change", fillReplacements);
+        for (const action of ["create", "switch", "delete"]) {
+          byId(`profile-${action}`).addEventListener("click", event => void changeProfile(action, event.currentTarget));
+        }
+        byId("profile-refresh").addEventListener("click", event => void runBusy(event.currentTarget, async () => {
+          try { await refreshStatus(); } catch (error) { showToast(error.message, "error"); }
+        }));
+
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!validateForm()) return;
+          const button = byId("save-settings");
+          void runBusy(button, async () => {
+            try {
+              const result = await saveCurrentConfig();
+              await submitCredentialIfPresent(result.accountRevision);
+              await refreshStatus();
+              showToast(result.message, result.ok ? "ok" : "error");
+            } catch (error) {
+              showToast(error.message, "error");
+            }
+          });
+        });
+
+        clearButton.addEventListener("click", () => {
+          if (!window.confirm("确认清除本机保存的邮箱授权码？")) return;
+          void runBusy(clearButton, async () => {
+            try {
+              const result = await api("/api/clear", { method: "POST", body: "{}" });
+              credentialInput.value = "";
+              setCredentialStored(false);
+              await refreshStatus();
+              showToast(result.message, result.ok ? "ok" : "error");
+            } catch (error) {
+              showToast(error.message, "error");
+            }
+          });
+        });
+
+        selectProvider("personal", true);
+        for (const [name, value] of Object.entries(folderDefaults)) byId(`folder-${name}`).value = value;
+        void initialize();
+      })();
+    </script>
+  </body>
+</html>

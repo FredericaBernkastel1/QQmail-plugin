@@ -1,0 +1,8 @@
+export const MAX_OUTGOING_ATTACHMENTS = 10;
+export const MAX_OUTGOING_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_OUTGOING_TOTAL_BYTES = 20 * 1024 * 1024;
+export const MAX_OUTGOING_MIME_BYTES = 32 * 1024 * 1024;
+export const MAX_ATTACHMENT_STORE_BYTES = 64 * 1024 * 1024;
+export const MAX_ATTACHMENT_STORE_ITEMS = 64;
+export const ATTACHMENT_TTL_MS = 30 * 60 * 1000;
+export const ATTACHMENT_ID_PATTERN = /^att_[0-9a-f-]{36}$/u;

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "qq-mail": {
+      "type": "stdio",
+      "cwd": "${PLUGIN_ROOT}",
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/dist/server.mjs"]
+    }
+  }
+}
