@@ -18,6 +18,8 @@
 
 Normal installation does not run inside an AppContainer sandbox. The plugin cannot revoke the host's other tools or guarantee that its model ignores every prompt injection. A native window is not a security boundary against malicious UI automation running as the same Windows user.
 
+Attachment paths must use their canonical local spelling. Windows 8.3 short-name aliases may be rejected; select the file using its normal full path. The plugin does not relax its path and handle checks to accept these aliases.
+
 The inherited interactive IMAP path has a narrower account-switch cancellation guarantee than task grants: if an operation without a grant was already started and, where required, approved, an account switch during IMAP connection or mailbox selection can still let that operation finish against the captured original account. It does not switch the operation to the new account or mix credentials. Do not rely on changing the active account to cancel such an in-flight operation. Grant-backed writes and SMTP sending recheck account binding before dispatch. New calls with old references are rejected.
 
 Task permissions are finite, not semantic policies. They do not restrict content to what a purpose sentence describes. A read-only profile has six read tools and no grant management; the authorized profile requires a grant for its exposed writes. In the default interactive profile, omitting a grant uses the original interactive rules.

@@ -19,6 +19,8 @@ The suite covers immutable bounded grants, pending confirmation capacity, concur
 
 CI runs on a disposable Windows runner because native file helpers use Windows PowerShell. It does not use cloud tests or claim Linux can validate Windows native behavior. It preserves the existing build/test scripts, public synthetic TLS fixtures and separate Playwright convention. UI and live mailbox checks are not silently inferred from CI success.
 
+Hosted Windows uses a regular workspace-local temporary directory for synthetic files and a finite 30-second test timeout for native helper cold starts. Its initial run exposed the runner's short-path TEMP alias and two 5-second framework timeouts. Product canonical-path checks and native operation deadlines are unchanged; no assertions or test files were skipped.
+
 The source branch and `QQmailplugin/` runtime are promoted separately. Runtime copying requires matching 0.4.1 acceptance, delivery and checksum records. Runtime payload files and author metadata are copied byte-for-byte. Public `LICENSE` and `THIRD_PARTY_NOTICES.md` are retained as publication additions; the public runtime checksum index covers these extra files as well. Original private acceptance records and raw test outputs are not published.
 
 Known operating limits, including the original-account behavior of already-started interactive IMAP operations without a task grant, are documented in [SECURITY.md](../SECURITY.md).
