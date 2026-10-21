@@ -130,6 +130,8 @@ export interface MailFolderConfig {
 
 /** Runtime configuration deliberately excludes the authorization code. */
 export interface MailAccountConfig {
+  /** Cloud deployments have no host filesystem attachment capability. */
+  attachmentsDisabled?: boolean;
   email: string;
   username: string;
   displayName: string;
@@ -254,6 +256,7 @@ export interface SmtpGateway {
     authorizationCode: string,
     message: OutgoingMessage,
     attachments?: readonly OutgoingAttachmentContent[],
+    beforeDispatch?: () => Promise<void>,
   ): Promise<SmtpSendResult>;
 }
 
@@ -291,6 +294,7 @@ export interface SearchEmailsInput {
 }
 
 export interface PrepareEmailInput {
+  authorizationId?: string | undefined;
   mode?: "compose" | "reply" | "reply_all" | "forward" | undefined;
   sourceRef?: string | undefined;
   to?: string[] | undefined;

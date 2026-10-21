@@ -1,0 +1,6 @@
+**
+!Dockerfile
+!.dockerignore
+!dist/
+!dist/cloud-server.mjs
+!dist/cloud-server.mjs.LEGAL.txt

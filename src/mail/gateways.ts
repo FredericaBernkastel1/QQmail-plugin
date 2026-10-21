@@ -263,11 +263,23 @@ export class NodemailerSmtpGateway implements SmtpGateway {
     authorizationCode: string,
     message: OutgoingMessage,
     attachments: readonly OutgoingAttachmentContent[] = [],
+    beforeDispatch?: () => Promise<void>,
   ): Promise<SmtpSendResult> {
     assertSecureServerConfig(config);
     const compiled = await compileOutgoingMessage(message, attachments);
     const rawMessage = compiled.message;
-    const transport = createSmtpTransport(config, username, authorizationCode);
+    let transport: ReturnType<typeof createSmtpTransport>;
+    try {
+      // MIME construction can yield long enough for approval to expire or be
+      // revoked. Check again before creating any SMTP transport or connection.
+      await beforeDispatch?.();
+      transport = createSmtpTransport(config, username, authorizationCode);
+    } catch (error) {
+      rawMessage.fill(0);
+      // No SMTP dispatch was attempted. Preserve authorization errors instead
+      // of misclassifying them as possibly accepted SMTP deliveries.
+      throw error;
+    }
     try {
       const result = await transport.sendMail({
         messageId: compiled.messageId,

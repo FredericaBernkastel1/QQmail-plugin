@@ -18,6 +18,11 @@ drafts.enc.json
 secret.bin
 credentials*.json
 config.local.json
+cloud.config.json
+qqmail.json
+cloud-state/
+cloud-connector/
+.controlled-js/
 downloads/
 attachments/
 *.eml

@@ -1,0 +1,7 @@
+{
+  "consentId": "INVALID_NEW_EXPLICIT_USER_CONSENT_ID",
+  "expiresAt": "2000-01-01T00:00:00Z",
+  "actions": ["edit_draft", "send"],
+  "recipients": ["recipient@example.invalid"],
+  "maxOperations": 3
+}

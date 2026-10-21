@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "publicUrl": "https://mail.example.invalid/mcp",
+  "listen": { "host": "127.0.0.1", "port": 8787 },
+  "oauth": {
+    "issuer": "https://identity.example.invalid",
+    "jwksUrl": "https://identity.example.invalid/.well-known/jwks.json",
+    "ownerSubject": "INVALID_REPLACE_WITH_VERIFIED_OWNER_SUBJECT",
+    "clientId": "INVALID_REPLACE_WITH_REGISTERED_CLIENT_ID"
+  },
+  "mailbox": {
+    "email": "owner@example.invalid",
+    "displayName": "",
+    "authorizationCode": "INVALID_REPLACE_WITH_PRIVATE_QQ_AUTHORIZATION_CODE",
+    "imap": { "host": "imap.example.invalid", "port": 993, "security": "tls" },
+    "smtp": { "host": "smtp.example.invalid", "port": 465, "security": "tls" },
+    "folders": { "inbox": "INBOX", "sent": "Sent Messages", "trash": "Deleted Messages" }
+  },
+  "stateDirectory": "/var/lib/qqmail",
+  "masterKeyBase64": "INVALID_REPLACE_WITH_BASE64_OF_32_RANDOM_BYTES"
+}

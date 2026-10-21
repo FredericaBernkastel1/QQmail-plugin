@@ -30,6 +30,14 @@ await build({
   },
 });
 
+stage("cloud MCP server");
+await build({
+  entryPoints: [join(root, "src", "cloud", "server.ts")],
+  outfile: join(dist, "cloud-server.mjs"), bundle: true, platform: "node", format: "esm",
+  target: "node22", sourcemap: true, legalComments: "linked",
+  banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+});
+
 stage("settings UI from source");
 const ui = await build({
   entryPoints: [join(root, "ui", "app.ts")],
