@@ -1,19 +1,24 @@
-# 0.3.0 validation scope
+# Local 0.4.1 validation status
 
-The local release was accepted on 2026-10-21 using synthetic mail and a restricted Windows AppContainer, a private desktop, and bounded process jobs. The acceptance records and raw OS metadata remain local and are not included in this public repository.
+Snapshot date: **2026-10-21**. This document describes the local Windows stdio candidate derived from public main's 0.3.0 baseline. Cloud-branch results do not validate this candidate.
 
-| Area | Recorded result |
-| --- | --- |
-| Business tests | 246/246 passed across 18 files |
-| Settings UI | 8 checks, 94 HTTP interactions; desktop/mobile |
-| Native approval | 4 checks |
-| Native attachment picker | 2 checks |
-| Native file handle / DPAPI / ACL | Passed recorded cases |
-| Isolation boundary | Passed recorded checks |
-| Independent Codex installation and original Node stdio | Passed |
+Current-version bounded release acceptance is recorded; all snapshot-listed source and test hashes match this staged source. `tsconfig.json`, `vitest.config.ts` were not included in those snapshots and are admitted only because their bytes exactly match the reviewed public 0.3.0 baseline. They are not claimed as snapshot-covered inputs. Runtime delivery is checked separately before copying.
 
-The full suite used a documented, test-only Node pipe adaptation required by the isolated harness. Independent installed stdio verification used unmodified Node. No adapted Node binary is distributed here.
+| Check | Recorded status | Scope |
+| --- | --- | --- |
+| Controlled synthetic suite | **377/377 passed** | Count is extracted only from matching current-version acceptance, not copied from historical results |
+| Native task-authorization window | **6/6 native checks passed with naturally visible windows** | Includes the user-visible Forms requirement; pure presentation-builder unit tests do not validate a real window |
+| Full native/UI/OS/install acceptance | **Bounded synthetic release acceptance recorded; real mailbox remains untested** | Requires current-version evidence and the release gate |
+| Public Windows CI | **Prepared; not run by this document** | Typecheck, all local test files including the 26/17/6 profile assertions, and build |
+| Real mailbox / real sending | **Not performed** | No real QQ account, credential or user message was used for this snapshot |
+| Everyday Codex desktop behavior | **Not claimed verified** | Synthetic MCP tests do not establish daily interactive desktop behavior |
 
-The public copy preserves the tested server bundle, source map, linked legal comments, settings UI, and production TypeScript source. Publication changes are repository/author metadata, documentation, license notices, and regenerated checksums. These do not constitute a new complete test run of the public checkout.
+The Windows approval visibility defect is fixed: the Forms window is explicitly displayed while the PowerShell console remains hidden. All six current native checks passed with naturally visible windows. The final synthetic count above is extracted from the matching 0.4.1 acceptance record after reruns, not inherited from an earlier result. These controlled native checks do not establish end-to-end sending through a real mailbox or everyday Codex desktop behavior.
 
-Not verified: a real user's QQ mailbox, ordinary Codex desktop embedding, all possible mail servers, cross-Windows-user isolation, or a hard Node RSS cap. A successful synthetic 100 MiB streaming download does not prove every real server implements partial FETCH correctly. Ordinary installation does not inherit the test sandbox.
+The suite covers immutable bounded grants, pending confirmation capacity, concurrent operation budgets, account binding, invalid IDs without fallback, exact To/Cc/Bcc and message-reference restrictions, revocation/expiry, attachment and draft workflows, and the final SMTP authorization boundary. The draft journal preserves unknown delivery outcomes across restart; grants deliberately do not persist.
+
+CI runs on a disposable Windows runner because native file helpers use Windows PowerShell. It does not use cloud tests or claim Linux can validate Windows native behavior. It preserves the existing build/test scripts, public synthetic TLS fixtures and separate Playwright convention. UI and live mailbox checks are not silently inferred from CI success.
+
+The source branch and `QQmailplugin/` runtime are promoted separately. Runtime copying requires matching 0.4.1 acceptance, delivery and checksum records. Runtime payload files and author metadata are copied byte-for-byte. Public `LICENSE` and `THIRD_PARTY_NOTICES.md` are retained as publication additions; the public runtime checksum index covers these extra files as well. Original private acceptance records and raw test outputs are not published.
+
+Known operating limits, including the original-account behavior of already-started interactive IMAP operations without a task grant, are documented in [SECURITY.md](../SECURITY.md).

@@ -1,72 +1,69 @@
 # QQmail plugin
 
-面向 Codex 等 MCP 宿主的本地 Windows 邮箱插件。当前版本 **0.3.0**，提供 **23 个工具**，支持 QQ 邮箱、腾讯企业邮箱及用户配置的 IMAP/SMTP 服务。
+面向 Codex 等 MCP 宿主的本地 Windows 邮箱插件。此分支开发 **0.4.1**，从已交付 **0.3.0** 独立演进，默认提供 **26 个工具**。通过本机 stdio 连接宿主，无需部署远程服务器、域名或 OAuth 服务。
 
-## 功能
+## 功能与使用
 
-- 账户设置、连接测试、多账户档案与经确认的账户切换。
-- 邮件搜索、分页读取、线程读取、标记、移动及移入垃圾箱。
-- 草稿准备、查询、编辑、取消，以及加密保存和恢复。
-- 发送、回复、回复全部、转发；支持由用户在原生窗口选择的本地附件。
-- 附件下载、待发送附件查询和移除。
-- 发送、移动和移入垃圾箱需要独立 Windows 确认；不提供永久删除。
+- 保留账户设置、连接测试、多账户档案与经确认的账户切换。
+- 支持邮件搜索、分页读取、会话读取、标记、移动和移入垃圾箱；不提供永久删除。
+- 支持草稿准备、查询、编辑、取消、加密保存和恢复，以及发送、回复、回复全部和转发。
+- 附件仍由用户通过独立 Windows 文件选择窗口导入，工具只接收 `attachmentId`，不接收任意本地路径、URL 或文件内容。
+- 新增 `request_mail_authorization`、`list_mail_authorizations` 和 `revoke_mail_authorization`，让用户在独立 Windows 窗口批准有限任务。
 
-## 安装和运行
+需要 Windows 交互式桌面、Node.js 22 或以上版本和系统自带 Windows PowerShell。账户和服务商的 IMAP/SMTP 授权码只在本地设置页面输入。插件正常连接用户配置的邮件服务器；读取结果会返回 MCP 宿主，宿主可能将其发送给模型服务。
 
-需要 Windows 交互式桌面、Node.js 22 或以上版本、系统自带的 Windows PowerShell。需要使用邮箱服务商提供的 IMAP/SMTP 授权码。授权码只在本地设置页面输入。
+`QQmailplugin/` 是与源码分开的运行包。以其 `plugin.json` 标示的版本为准：仅更新源码分支不会自动升级该目录，只有独立发布验收和交付完成后才替换。候选源码、CI 成功或旧包均不代表本版本已完成桌面验收。
 
-仓库中的 [`QQmailplugin/`](QQmailplugin/) 是已构建的可运行包，依赖已打包，无需执行 `npm install`。也可从 [Releases](https://github.com/FredericaBernkastel1/QQmail-plugin/releases) 下载运行包。
+1. 将完整运行包放到本机固定目录；支持插件的宿主使用其中的插件清单和 `.mcp.json`。
+2. 普通 MCP stdio 配置可使用 `node` 启动该包的 `dist/server.mjs`，工作目录为插件根目录。
+3. 调用 `get_account_status`，再用 `open_settings` 保存账户和授权码；敏感设置操作仍须原生确认。
+4. 发送附件时，先 `select_attachments`，把返回的 ID 加入 `prepare_email.attachmentIds`，再调用 `send_email`。
 
-1. 将完整 `QQmailplugin` 文件夹放到本机固定位置。
-2. 支持 Codex 插件的宿主使用其中的 `.codex-plugin/plugin.json` 和 `.mcp.json`；其他 MCP 宿主使用 stdio 配置：
-
-   ```json
-   {
-     "mcpServers": {
-       "qq-mail": {
-         "command": "node",
-         "args": ["C:/Tools/QQmailplugin/dist/server.mjs"]
-       }
-     }
-   }
-   ```
-
-   将示例路径替换为自己的实际路径，工作目录使用插件根目录。
-
-3. 调用 `get_account_status`，再调用 `open_settings`。在设置页保存账户和授权码，按提示确认并测试连接。
-4. 发送附件时先调用 `select_attachments`，再将返回的 `attachmentId` 传给 `prepare_email`，最后调用 `send_email` 并在原生窗口确认。
-
-完整操作、限制与数据流见 [运行说明](QQmailplugin/README.md)。校验运行包：
+运行包完整性可用保留的验证工具检查：
 
 ```powershell
 python scripts/verify-runtime.py
 ```
 
-## 安全边界
+## 有界任务授权
 
-插件只暴露邮箱操作和账户设置，不提供任意命令、代码执行、宿主行为修改或任意文件路径上传接口。邮件和附件内容作为不可信数据处理。插件正常连接已确认配置的邮箱服务器；没有自建遥测或云端转发服务。
+默认 `interactive` 模式保留原来的 23 项功能，再加入 3 项授权管理工具。未提供 `authorizationId` 时，发送及移动/垃圾箱操作保持原有逐次原生确认。草稿编辑和标记操作保留原有交互式行为。
 
-读取结果会返回 MCP 宿主，宿主可能将其发送给模型服务。普通安装不自动获得操作系统沙箱；插件也不能限制宿主已有的其他工具权限。详情见 [SECURITY.md](SECURITY.md)。
+`request_mail_authorization` 本身不批准请求。用户必须在独立窗口确认账户、动作、目标、次数和有效期，之后才能获得授权 ID。用户应亲自阅读并操作确认窗口，不应让宿主代理代点批准。
+
+- `send` 覆盖每一项 To、Cc 和 Bcc 收件人；允许列表最多 20 个地址。
+- `trash` 和 `flags` 绑定最多 100 个精确消息引用，不根据邮件正文决定权限。
+- `edit_draft` 允许本账户的本地草稿准备、编辑和取消；它不授予发送权限。
+- 每份授权最多 100 个操作、24 小时。发送和草稿编辑每次计 1；标记和垃圾箱按不同消息数计数。已扣额度不会因后续失败而退还。
+- 授权只在当前进程内保存；重启、撤销、过期或账户版本变更后失效。无效 ID 不会在同一次调用中降级为免授权执行或重新弹窗。
+
+任务授权允许代理在上述范围内选择正文，**不是逐封正文确认**；`purpose` 只是展示说明，不是正文过滤规则。准备草稿返回 `confirmationRequired: false` 仅反映本次使用了编辑授权，发送仍须另行满足 `send` 权限和全部收件人限制。附件的选择、大小与有效期限制继续适用。
+
+启动参数由可信宿主配置决定，工具不能修改模式：
+
+| 模式 | 工具数 | 写操作 |
+| --- | ---: | --- |
+| 默认 `interactive` | 26 | 原有交互流程，可选有效任务授权 |
+| `--profile=authorized` | 17 | 所有已暴露写操作均要求有效授权 ID |
+| `--profile=read-only` | 6 | 只暴露读取操作，无授权管理工具 |
+
+安全边界和正在进行的验收见 [SECURITY.md](SECURITY.md) 与 [验证说明](docs/VALIDATION.md)。
 
 ## 源码开发
 
-仓库根目录包含 TypeScript 源码、设置页面源码和合成测试；`QQmailplugin/` 单独保存可运行成品。
-
 ```powershell
-npm ci
+npm ci --ignore-scripts
 npm run typecheck
-npm test
+npm test -- --maxWorkers=2 --no-file-parallelism
 npm run build
 ```
 
-`npm run build` 生成根目录 `dist/` 和 `ui/settings.html`，不会覆盖 `QQmailplugin/`。原生 Windows 测试需要 Windows；浏览器测试使用 Microsoft Edge，也可通过 `QQMAIL_TEST_BROWSER` 指定测试浏览器后执行 `npm run test:ui`。开发测试只能使用合成邮箱和测试配置，不要复用日常邮箱配置。完整插件和依赖应在单独的受限测试环境运行。
+构建只生成根目录 `dist/` 和 `ui/settings.html`，不会覆盖 `QQmailplugin/`。请在独立受限环境中运行完整程序和依赖，只使用合成账户。原生测试需要 Windows；CI 使用 Windows runner，不把 Linux 结果当作原生验收。浏览器测试沿用仓库 Playwright 配置，通过 `npm run test:ui` 单独执行。
 
-测试目录中的 TLS 证书和密钥为公开合成 fixture，不能用于生产。`QQMAIL_APPCONTAINER_TEST` 是原有受控测试基础设施的选择开关；该外部基础设施未随本仓库提供，普通开发环境无需启用。
-
-0.3.0 的既有受控验收包括 246/246 项业务测试，以及浏览器、原生确认、附件选择、隔离和独立安装检查。公开仓库不包含原始系统元数据、个人运行记录或测试环境。验收范围和未测项见 [验证说明](docs/VALIDATION.md)。
+`tests/fixtures/` 的 TLS 证书和密钥是公开合成 fixture，不能用于生产或加入系统信任库。`QQMAIL_APPCONTAINER_TEST` 仅用于原有外部受控测试基础设施，普通开发环境不要开启。
 
 ## 来源和许可
 
-改编自 [moondream69/QQmail-plugin](https://github.com/moondream69/QQmail-plugin)，基线提交 [`146923e`](https://github.com/moondream69/QQmail-plugin/commit/146923e7277988b451ff69b772966d6e4f723d1a)。保留 [MIT 许可证](LICENSE) 及原作者版权声明。本仓库维护本地改编版本，不是腾讯官方产品。
+改编自 [moondream69/QQmail-plugin](https://github.com/moondream69/QQmail-plugin)，基线提交为 `146923e7277988b451ff69b772966d6e4f723d1a`。保留 [MIT 许可证](LICENSE) 和原作者版权声明。本仓库维护本地改编版本，不是腾讯官方产品。
 
-依赖来源、版本及完整性见 [SBOM](QQmailplugin/SBOM.json)，第三方许可见 [THIRD_PARTY_NOTICES](QQmailplugin/THIRD_PARTY_NOTICES.md)。
+运行包的依赖版本和来源见 [SBOM](QQmailplugin/SBOM.json)，第三方许可见 [THIRD_PARTY_NOTICES](QQmailplugin/THIRD_PARTY_NOTICES.md)。历史云端候选保留在独立分支，本分支不包含云端服务或云端测试。

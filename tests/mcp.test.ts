@@ -125,7 +125,10 @@ describe("QQ Mail MCP protocol", () => {
         "download_attachment",
       ]),
     );
-    expect(names).toHaveLength(23);
+    expect(names).toHaveLength(26);
+    expect(names).toEqual(expect.arrayContaining([
+      "request_mail_authorization", "list_mail_authorizations", "revoke_mail_authorization",
+    ]));
     expect(result.tools.find((tool) => tool.name === "send_email")?.annotations?.destructiveHint).toBe(true);
     expect(result.tools.find((tool) => tool.name === "search_emails")?.annotations?.readOnlyHint).toBe(true);
     expect(result.tools.find((tool) => tool.name === "open_settings")?._meta).toMatchObject({

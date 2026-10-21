@@ -7,6 +7,8 @@ import { denyAttachmentPicker, type AttachmentPicker } from "../attachment-picke
 import { OutgoingAttachmentStore, type OutgoingAttachmentRepository } from "../outgoing-attachments.js";
 import { MAX_OUTGOING_ATTACHMENTS, MAX_OUTGOING_FILE_BYTES, MAX_OUTGOING_TOTAL_BYTES, MAX_OUTGOING_MIME_BYTES } from "../attachment-limits.js";
 import { ToolFailure, DeliveryFailure } from "../errors.js";
+import { MailAuthorizationStore, type MailAuthorizationRequestInput, type MailAuthorizationContext,
+  type MailAuthorizationApprover, type MailAuthorizationReceipt } from "../mail-authorization.js";
 import { denyMailMutation, type MailMutationApproval } from "./mutation-approval.js";
 import { assertSecureServerConfig } from "./config-validation.js";
 import {
@@ -70,6 +72,10 @@ export interface QqMailServiceOptions {
   readBudget?: ReadResourceBudget;
   /** Internal test/deployment limit; cannot exceed the production request ceiling. */
   readRequestLimitBytes?: number;
+  requireAuthorization?: boolean;
+  authorizationStore?: MailAuthorizationStore;
+  authorizationApprover?: MailAuthorizationApprover;
+  assertWriteAuthority?: (action: "edit_draft" | "send" | "trash" | "flags") => void;
 }
 
 interface ResolvedMessage {
@@ -113,6 +119,10 @@ export class QqMailService {
   readonly #readRequestLimitBytes: number;
   readonly #approval: SendApproval;
   readonly #mutationApproval: MailMutationApproval;
+  readonly #authorizations: MailAuthorizationStore;
+  readonly #authorizationApprover: MailAuthorizationApprover;
+  readonly #requireAuthorization: boolean;
+  readonly #assertWriteAuthority: NonNullable<QqMailServiceOptions["assertWriteAuthority"]>;
   readonly #picker: AttachmentPicker;
   readonly #outgoingAttachments: OutgoingAttachmentRepository;
   #selectingAttachments = false;
@@ -140,11 +150,48 @@ export class QqMailService {
         this.#readRequestLimitBytes > MAX_REQUEST_SOURCE_BYTES) throw new Error("Invalid read request byte limit");
     this.#approval = options.sendApproval ?? denySendApproval;
     this.#mutationApproval = options.mutationApproval ?? denyMailMutation;
+    this.#authorizations = options.authorizationStore ?? new MailAuthorizationStore({ now: this.#now });
+    this.#authorizationApprover = options.authorizationApprover ?? (async () => ({ status: "unavailable" }));
+    this.#requireAuthorization = options.requireAuthorization ?? false;
+    this.#assertWriteAuthority = options.assertWriteAuthority ?? (() => undefined);
     this.#picker = options.attachmentPicker ?? denyAttachmentPicker;
     this.#outgoingAttachments = options.outgoingAttachments ?? new OutgoingAttachmentStore({ now: this.#now });
   }
 
-  dispose(): void { this.#outgoingAttachments.dispose(); this.#drafts.dispose(); }
+  dispose(): void { this.#authorizations.dispose(); this.#outgoingAttachments.dispose(); this.#drafts.dispose(); }
+
+  #authorizationContext(account: AccountOperation): MailAuthorizationContext {
+    return { scope: account.accountScope, fingerprint: accountFingerprint(account), email: account.email };
+  }
+
+  async requestMailAuthorization(input: MailAuthorizationRequestInput) {
+    const account = await this.#requireAccount();
+    if (input.messageRefs?.length) this.#decodeReferenceList([...input.messageRefs], 100, account);
+    return this.#authorizations.request(input, this.#authorizationContext(account), this.#authorizationApprover,
+      async () => this.#authorizationContext(await this.#requireAccount()));
+  }
+
+  async listMailAuthorizations() {
+    return { authorizations: this.#authorizations.list(this.#authorizationContext(await this.#requireAccount())), survivesRestart: false };
+  }
+
+  async revokeMailAuthorization(input: { authorizationId: string }) {
+    this.#authorizations.revoke(input.authorizationId, this.#authorizationContext(await this.#requireAccount()));
+    return { revoked: true, alreadyDispatchedOperationsRecalled: false };
+  }
+
+  #consumeAuthorization(id: string | undefined, account: AccountOperation,
+    operation: Parameters<MailAuthorizationStore["consume"]>[2]): MailAuthorizationReceipt | undefined {
+    this.#assertWriteAuthority(operation.action);
+    if (id === undefined && !this.#requireAuthorization) return undefined;
+    if (!id) throw failure("AUTHORIZATION_REQUIRED", "Explicit, unexpired mail task authorization is required.");
+    return this.#authorizations.consume(id, this.#authorizationContext(account), operation);
+  }
+
+  async #checkAuthorization(receipt: MailAuthorizationReceipt | undefined, action: "edit_draft" | "send" | "trash" | "flags"): Promise<void> {
+    if (receipt) this.#authorizations.assertStillValid(receipt, this.#authorizationContext(await this.#requireAccount()));
+    this.#assertWriteAuthority(action);
+  }
 
   async #ensureDrafts(): Promise<void> {
     if (!this.#initializeDrafts) return;
@@ -193,8 +240,12 @@ export class QqMailService {
     return { ...status, ...(status.status === "prepared" ? { preview: this.#drafts.get(id).preview } : {}) };
   }
 
-  async cancelDraft(input: { draftId: string }) {
+  async cancelDraft(input: { draftId: string; authorizationId?: string | undefined }) {
     const id = await this.#draftForAccount(input.draftId);
+    const account = await this.#requireAccount();
+    const binding = this.#drafts.getBinding(id) as DraftAccountBinding | undefined;
+    if (binding?.scope !== account.accountScope) throw failure("DRAFT_ACCOUNT_CHANGED", "The active account changed.");
+    this.#consumeAuthorization(input.authorizationId, account, { action: "edit_draft" });
     this.#drafts.cancel(id);
     await this.#drafts.flush();
     return this.#drafts.status(id);
@@ -206,6 +257,7 @@ export class QqMailService {
   }
 
   async selectAttachments(): Promise<unknown> {
+    if ((await this.#requireAccount()).attachmentsDisabled) throw failure("CAPABILITY_DISABLED", "Local attachments are unavailable for this account.");
     if (this.#selectingAttachments) throw failure("ATTACHMENTS_BUSY", "Another file selection is already open.");
     this.#selectingAttachments = true;
     let importedIds: string[] = [];
@@ -569,6 +621,13 @@ export class QqMailService {
   async prepareEmail(input: PrepareEmailInput, existingId?: string) {
     const account = await this.#requireAccount();
     await this.#ensureDrafts();
+    const oldBinding = existingId ? this.#drafts.getBinding(existingId) as DraftAccountBinding | undefined : undefined;
+    if (existingId && (!oldBinding || oldBinding.scope !== account.accountScope || oldBinding.fingerprint !== accountFingerprint(account))) {
+      throw failure("DRAFT_ACCOUNT_CHANGED", "The draft belongs to another account revision.");
+    }
+    const authorization = this.#consumeAuthorization(input.authorizationId, account, { action: "edit_draft" });
+    const previous = existingId ? this.#drafts.getPayload(existingId) : undefined;
+    const previousPreview = existingId ? this.#drafts.get(existingId).preview : undefined;
     const attachmentIds = input.attachmentIds ?? [];
     const attachments = this.#outgoingAttachments.metadata(attachmentIds, account.accountScope);
     const mode = input.mode ?? "compose";
@@ -626,7 +685,7 @@ export class QqMailService {
       throw failure("INVALID_DRAFT", "At least one recipient is required.");
     }
     const message: OutgoingMessage = {
-      messageId: `<${randomBytes(24).toString("hex")}@qq-mail.local>`,
+      messageId: previous?.messageId ?? `<${randomBytes(24).toString("hex")}@qq-mail.local>`,
       from: { name: validateHeaderText(account.displayName, 200), address: account.email },
       to,
       cc,
@@ -634,12 +693,12 @@ export class QqMailService {
       subject,
       text,
       ...(html ? { html } : {}),
-      ...(inReplyTo ? { inReplyTo } : {}),
-      ...(references && references.length > 0 ? { references } : {}),
+      ...((previous?.inReplyTo ?? inReplyTo) ? { inReplyTo: (previous?.inReplyTo ?? inReplyTo)! } : {}),
+      ...((previous?.references ?? references)?.length ? { references: (previous?.references ?? references)! } : {}),
       ...(attachmentIds.length ? { attachmentIds: [...attachmentIds] } : {}),
     };
     const preview = {
-      mode,
+      mode: previousPreview?.mode ?? mode,
       from: message.from,
       to: message.to,
       cc: message.cc,
@@ -657,9 +716,13 @@ export class QqMailService {
       scope: account.accountScope,
     };
     const approvalPreview = { ...preview, deliveryAccount: { username: boundAccount.username, smtp: boundAccount.smtp, imap: boundAccount.imap } };
-    if (!preflightSendApproval({ draftId: "0".repeat(128), digest: "0".repeat(64), expiresAt: new Date(this.#now() + 30 * 60_000).toISOString(), preview: approvalPreview }).ok) {
+    if (!authorization && !preflightSendApproval({ draftId: "0".repeat(128), digest: "0".repeat(64), expiresAt: new Date(this.#now() + 30 * 60_000).toISOString(), preview: approvalPreview }).ok) {
       throw failure("DRAFT_APPROVAL_TOO_LARGE", "The complete preview exceeds the trusted confirmation window's UTF-8 limit. Reduce the body before preparing this draft.");
     }
+    const saveAccount = await this.#requireAccount();
+    if (saveAccount.accountScope !== account.accountScope) throw failure("DRAFT_ACCOUNT_CHANGED", "The account changed before saving the draft.");
+    if (authorization) this.#authorizations.assertStillValid(authorization, this.#authorizationContext(saveAccount));
+    this.#assertWriteAuthority("edit_draft");
     const draft = existingId
       ? this.#drafts.update(existingId, message, preview, [], expiresBy, binding)
       : this.#drafts.prepare(message, preview, [], expiresBy, binding);
@@ -668,11 +731,12 @@ export class QqMailService {
       draftId: draft.draftId,
       expiresAt: draft.expiresAt,
       preview: structuredClone(preview),
-      confirmationRequired: true,
+      confirmationRequired: !authorization,
+      authorizationRequired: this.#requireAuthorization,
     };
   }
 
-  async sendEmail(input: { draftId: string }): Promise<DraftSendResult> {
+  async sendEmail(input: { draftId: string; authorizationId?: string | undefined }): Promise<DraftSendResult> {
     const draftId = validateDraftId(input.draftId);
     if (this.#queuedSends >= 4) throw failure("SEND_BUSY", "The send queue is full. Retry the same draft later.");
     this.#queuedSends++;
@@ -710,6 +774,26 @@ export class QqMailService {
             );
           }
           const draft = this.#drafts.get(draftId);
+          let authorization: MailAuthorizationReceipt | undefined;
+          try {
+            authorization = this.#consumeAuthorization(input.authorizationId, currentAccount, { action: "send",
+              recipients: { to: message.to.map(a => a.address), cc: message.cc.map(a => a.address), bcc: message.bcc.map(a => a.address) } });
+          } catch (error) {
+            throw new DraftError("DRAFT_APPROVAL_REQUIRED", error instanceof ToolFailure ? error.message : "Mail task authorization was denied.");
+          }
+          const beforeDispatch = async () => {
+            const active = await this.#requireAccount();
+            if (active.accountScope !== binding!.scope || accountFingerprint(active) !== binding!.fingerprint) {
+              throw new DraftError("DRAFT_ACCOUNT_CHANGED", "The account changed before SMTP dispatch.");
+            }
+            if (this.#now() >= Date.parse(draft.expiresAt)) throw new DraftError("DRAFT_EXPIRED", "The draft expired before SMTP dispatch.");
+            try {
+              if (authorization) this.#authorizations.assertStillValid(authorization, this.#authorizationContext(active));
+              this.#assertWriteAuthority("send");
+            } catch (error) {
+              throw new DraftError("DRAFT_APPROVAL_REQUIRED", error instanceof ToolFailure ? error.message : "Mail task authorization expired or was revoked.");
+            }
+          };
           try {
             this.#outgoingAttachments.metadata(message.attachmentIds ?? [], binding.scope);
           } catch {
@@ -718,7 +802,7 @@ export class QqMailService {
           const digest = createHash("sha256")
             .update(JSON.stringify({ draftId, account: binding.fingerprint, scope: binding.scope, message }))
             .digest("hex");
-          let approvalStatus = "unavailable";
+          let approvalStatus = authorization ? "approved" : "unavailable";
           try {
             const request = Object.freeze({
               draftId,
@@ -733,7 +817,7 @@ export class QqMailService {
                 },
               },
             });
-            approvalStatus = this.#approval.confirmDetailed
+            if (!authorization) approvalStatus = this.#approval.confirmDetailed
               ? (await this.#approval.confirmDetailed(request)).status
               : (await this.#approval.confirm(request)) ? "approved" : "required";
           } catch {
@@ -764,13 +848,15 @@ export class QqMailService {
           try {
             const attachments = await this.#outgoingAttachments.acquire(message.attachmentIds ?? [], binding.scope);
             try {
+              await beforeDispatch();
               const receipt = await this.#smtp.send(
-                binding.account.smtp, binding.account.username, authorizationCode, message, attachments,
+                binding.account.smtp, binding.account.username, authorizationCode, message, attachments, beforeDispatch,
               );
               sentRawMessage = receipt.rawMessage;
               return receipt;
             } finally { await this.#outgoingAttachments.release(attachments); }
           } catch (error) {
+            if (error instanceof DraftError) throw error;
             if (error instanceof ToolFailure && error.code === "MESSAGE_TOO_LARGE") {
               throw new DraftError("MESSAGE_TOO_LARGE", "The encoded email exceeds 32 MiB. Reduce the attachments and prepare a new draft.");
             }
@@ -811,6 +897,7 @@ export class QqMailService {
 
   async setEmailFlags(input: {
     messageRefs: string[];
+    authorizationId?: string | undefined;
     read?: boolean | undefined;
     starred?: boolean | undefined;
   }): Promise<unknown> {
@@ -819,7 +906,11 @@ export class QqMailService {
     }
     const account = await this.#requireAccount();
     const locators = this.#decodeReferenceList(input.messageRefs, 100, account);
+    const authorization = this.#consumeAuthorization(input.authorizationId, account, { action: "flags", messageRefs: input.messageRefs });
     return this.#withImap(account, "SET_FLAGS_FAILED", async (session) => {
+      let started = false;
+      let completed = 0;
+      try {
       for (const group of groupLocators(locators)) {
         await this.#selectAndValidate(session, group[0]!);
         const uids = [...new Set(group.map((entry) => entry.uid))];
@@ -827,8 +918,20 @@ export class QqMailService {
         const removals: string[] = [];
         placeFlag("\\Seen", input.read, additions, removals);
         placeFlag("\\Flagged", input.starred, additions, removals);
+        await this.#checkAuthorization(authorization, "flags");
+        if (additions.length) started = true;
         await session.addFlags(uids, additions);
+        await this.#checkAuthorization(authorization, "flags");
+        if (removals.length) started = true;
         await session.removeFlags(uids, removals);
+        completed += uids.length;
+      }
+      } catch (error) {
+        if (!started) throw error;
+        return { ok: false, status: "partial_failure", updated: completed,
+          unconfirmed: new Set(input.messageRefs).size - completed,
+          failure: { code: error instanceof ToolFailure ? error.code : "SET_FLAGS_FAILED",
+            message: "Some flag writes may already have been applied. Read current flags before requesting another change." } };
       }
       return { updated: locators.length, read: input.read ?? null, starred: input.starred ?? null };
     });
@@ -839,13 +942,14 @@ export class QqMailService {
     return this.#moveTo(input.messageRefs, destination, "MOVE_FAILED", "moved");
   }
 
-  async trashEmails(input: { messageRefs: string[] }): Promise<unknown> {
+  async trashEmails(input: { messageRefs: string[]; authorizationId?: string | undefined }): Promise<unknown> {
     const account = await this.#requireAccount();
-    return this.#moveTo(input.messageRefs, account.folders.trash, "TRASH_FAILED", "trashed", account);
+    return this.#moveTo(input.messageRefs, account.folders.trash, "TRASH_FAILED", "trashed", account, input.authorizationId);
   }
 
   async downloadAttachment(input: { messageRef: string; attachmentId: string }): Promise<unknown> {
     const account = await this.#requireAccount();
+    if (account.attachmentsDisabled) throw failure("CAPABILITY_DISABLED", "File downloads are unavailable for this account.");
     const locator = this.#decodeReference(input.messageRef, account);
     if (!/^\d+(?:\.\d+)*$/u.test(input.attachmentId)) {
       throw failure("INVALID_ATTACHMENT", "The attachment identifier is invalid.");
@@ -1121,12 +1225,15 @@ export class QqMailService {
     errorCode: string,
     countName: "moved" | "trashed",
     existingAccount?: AccountOperation,
+    authorizationId?: string,
   ): Promise<unknown> {
     const account = existingAccount ?? await this.#requireAccount();
     const locators = this.#decodeReferenceList(references, 100, account);
     const destination = validateMailboxPath(rawDestination);
+    const authorization = countName === "trashed"
+      ? this.#consumeAuthorization(authorizationId, account, { action: "trash", messageRefs: references }) : undefined;
     const expiresAt = new Date(this.#now() + 120_000).toISOString();
-    const decision = await this.#mutationApproval.confirm({ action: countName === "trashed" ? "trash" : "move",
+    const decision = authorization ? { status: "approved" } : await this.#mutationApproval.confirm({ action: countName === "trashed" ? "trash" : "move",
       account: account.email, destination, messages: locators, expiresAt });
     if (decision.status !== "approved" || this.#now() >= Date.parse(expiresAt)) {
       throw failure("MAIL_CHANGE_APPROVAL_REQUIRED", `Mailbox change was not approved (${decision.status}). No messages were moved.`);
@@ -1143,6 +1250,7 @@ export class QqMailService {
       for (const group of groupLocators(locators)) {
         try {
           await this.#selectAndValidate(session, group[0]!);
+          await this.#checkAuthorization(authorization, "trash");
           await session.moveMessages([...new Set(group.map((entry) => entry.uid))], destination);
           completedCount += group.length;
         } catch (error) {
@@ -1172,7 +1280,7 @@ export class QqMailService {
 export function validateRestoredDraftRecord(record: DraftSnapshotRecord<OutgoingMessage, Record<string, unknown>, unknown>): boolean {
   try {
     const binding = record.binding as DraftAccountBinding | undefined;
-    if (!binding || !/^[a-f0-9]{64}$/u.test(binding.scope) || !/^[a-f0-9]{64}$/u.test(binding.fingerprint) ||
+    if (!binding || !/^[a-f0-9]{64}$/u.test(binding.scope) || !/^[A-Za-z0-9_-]{43}$/u.test(binding.fingerprint) ||
         accountFingerprint(validateAccountConfig(binding.account)) !== binding.fingerprint) return false;
     const message = record.content?.payload;
     if (!message) return record.state !== "prepared";
@@ -1207,10 +1315,11 @@ function validateAccountConfig(value: MailAccountConfig): MailAccountConfig {
     value.downloadLimitBytes < 1 ||
     value.downloadLimitBytes > MAX_DOWNLOAD_BYTES ||
     typeof value.downloadDirectory !== "string" ||
-    !value.downloadDirectory.trim() ||
+    (!value.attachmentsDisabled && !value.downloadDirectory.trim()) ||
     value.downloadDirectory.length > 4096 ||
     /[\r\n\0]/u.test(value.downloadDirectory) ||
-    !isLocalAbsoluteWindowsPath(value.downloadDirectory)
+    (value.attachmentsDisabled ? value.downloadDirectory !== "" : !isLocalAbsoluteWindowsPath(value.downloadDirectory)) ||
+    (value.attachmentsDisabled !== undefined && typeof value.attachmentsDisabled !== "boolean")
   ) {
     throw new Error("Download configuration is invalid");
   }
@@ -1256,6 +1365,7 @@ function snapshotAccount(account: MailAccountConfig): MailAccountConfig {
       ...(account.folders.archive === undefined ? {} : { archive: account.folders.archive }),
     },
     downloadDirectory: account.downloadDirectory,
+    ...(account.attachmentsDisabled ? { attachmentsDisabled: true } : {}),
     downloadLimitBytes: account.downloadLimitBytes,
     ...(account.messageParseLimitBytes === undefined
       ? {}

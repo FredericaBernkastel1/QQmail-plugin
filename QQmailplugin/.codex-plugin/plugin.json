@@ -1,9 +1,10 @@
 {
   "name": "qq-mail",
-  "version": "0.3.0",
-  "description": "Secure local IMAP and SMTP integration for QQ Mail in Codex.",
+  "version": "0.4.1",
+  "description": "Local Windows QQ Mail tools with native confirmation and bounded task authorizations.",
+  "requires_local_executor": true,
   "author": {
-    "name": "FredericaBernkastel1"
+    "name": "Codex Local"
   },
   "license": "MIT",
   "keywords": [
@@ -15,9 +16,9 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "QQ 邮箱",
-    "shortDescription": "在 Codex 中安全地读取、搜索和发送 QQ 邮件。",
-    "longDescription": "通过本地 IMAP/SMTP 服务连接个人 QQ 邮箱、腾讯企业邮箱或信创邮箱，并提供可视化账户设置。",
-    "developerName": "FredericaBernkastel1",
+    "shortDescription": "本地邮箱工具，支持原生确认与有限任务授权",
+    "longDescription": "通过本机 IMAP/SMTP 连接已配置邮箱，保留附件、草稿和账户设置，并支持由原生窗口确认范围的有限任务授权。",
+    "developerName": "Codex Local",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
@@ -25,6 +26,5 @@
       "Write"
     ],
     "brandColor": "#12B7F5"
-  },
-  "repository": "https://github.com/FredericaBernkastel1/QQmail-plugin"
+  }
 }

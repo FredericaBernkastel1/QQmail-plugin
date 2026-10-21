@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { WINDOWS_APPROVAL_MAX_BYTES, WindowsSendApproval, preflightSendApproval, type SendApprovalRequest } from "../src/approval.js";
+import { WINDOWS_APPROVAL_MAX_BYTES, WINDOWS_APPROVAL_SCRIPT, WindowsSendApproval, preflightSendApproval, type SendApprovalRequest } from "../src/approval.js";
 
 const mocks = vi.hoisted(() => ({ spawn: vi.fn() }));
 vi.mock("node:child_process", () => ({ spawn: mocks.spawn }));
@@ -37,7 +37,9 @@ describe("Windows confirmation boundary", () => {
     const [, args, options] = mocks.spawn.mock.calls[0]!;
     expect(args.join(" ")).not.toContain("synthetic@example.com");
     expect(args.join(" ")).not.toContain("'; exit 0;");
+    expect(args).toEqual(["-NoLogo", "-NoProfile", "-STA", "-NonInteractive", "-Command", WINDOWS_APPROVAL_SCRIPT]);
     expect(options.shell).toBe(false);
+    expect(options.windowsHide).toBe(true);
   });
   for (const action of ["deny", "forged", "error"] as const) {
     it(`rejects ${action}`, async () => {
