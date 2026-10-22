@@ -1,14 +1,14 @@
 {
-  ".codex-plugin/plugin.json": "088d10499e6a027dcb25be81904fdc9c079b41ad0225fb77b6373a20d97b1856",
+  ".codex-plugin/plugin.json": "f38c9d33bd75e05b5d71fc54cf9be91b4ec26f4db8ffc518f02c9fb08cc59a5d",
   ".mcp.json": "948ac26a0d5871df25a01a75a2f40a548b65079b62490f613d1e97a49b573248",
-  "dist/server.mjs": "b70b3d0437eacdfe37976f61383961cdc9e341e0f22d021bf3a358ca1475c6c3",
-  "dist/server.mjs.LEGAL.txt": "9d139daa4b18afa98d7d012bfd4cc790c432b99fa6325833857d6313bbb2212d",
-  "dist/server.mjs.map": "9e0144f3bd5728af736ec7762e457229a3a24ac448d154f7d363bcb2e4b61929",
-  "dist/ui/settings.html": "bed51e1fb911dff57746f0aa057598baa1aec1ef046bbf5940aaa448ab66c309",
   "LICENSE": "a7fe1b24b219fe41c9ee45b9d103e9ec1ba5fb7fd426b9cb7d2ca2629f0803ee",
+  "README.md": "796b3d9339cd6408d9d04a72e2aa979c99b747ca79860d0a65f53630de7aa5e9",
+  "SBOM.json": "83fd9bf7206724ae98fc1ed365c154f9ed5fcdc9ab6927f731a46215bda0f645",
+  "THIRD_PARTY_NOTICES.md": "e7d43d66c0b7914279284b12e14fa18b7a25c808246350a3daf629fa0762b824",
+  "dist/server.mjs": "b3bdfd4c6fe8f333bbbcef751a786163c675bd961adec26f9f3471b5447ca49e",
+  "dist/server.mjs.LEGAL.txt": "9d139daa4b18afa98d7d012bfd4cc790c432b99fa6325833857d6313bbb2212d",
+  "dist/server.mjs.map": "d01c180adabbb1ec9261f854f4229804cbef5f435aaa31250fb29d12a7add237",
+  "dist/ui/settings.html": "c23731443c06962a95e0b5fedb682c34f6f22f507d6e9893963b4284e3cdafc8",
   "mcp.json": "35186cb32c9bba60d3f4b1c7c8c20c7246af990f396c4bdf3db1c71ab02ae5ab",
-  "plugin.json": "5b5acf57f78b32d5741f8b086a5acfd2e215b6ed5d7dba8d2483a3762f44a63a",
-  "README.md": "e77143b2e717ca49e9413ebfe50b0db9fccddd20de0c42603fdeb06fd339d824",
-  "SBOM.json": "5bc9f97cd8ceee0a03b97f7f47f8ee055f6ec2f98e9b217cd1d8ed429cde7fed",
-  "THIRD_PARTY_NOTICES.md": "e7d43d66c0b7914279284b12e14fa18b7a25c808246350a3daf629fa0762b824"
+  "plugin.json": "9803c86c0e2323fd1ac1eb08c8ea3ae71b6db0ed470ddedc8ce9a811fb7f3622"
 }

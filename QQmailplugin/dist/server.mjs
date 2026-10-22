@@ -74841,6 +74841,7 @@ import path11 from "node:path";
 // src/windows-drive.ts
 import { spawn as spawn5 } from "node:child_process";
 import path8 from "node:path";
+var DRIVE_QUERY_TIMEOUT_MS = 3e4;
 var DRIVE_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 $drive = [Console]::In.ReadToEnd()
@@ -74867,7 +74868,7 @@ async function isLocalWindowsDrive(root) {
       if (!allowed) child.kill();
       resolve4(allowed);
     };
-    const timer = setTimeout(() => finish(false), 1e4);
+    const timer = setTimeout(() => finish(false), DRIVE_QUERY_TIMEOUT_MS);
     child.stdout.on("data", (data) => {
       bytes += data.length;
       if (bytes > 1024) finish(false);
@@ -88437,8 +88438,12 @@ var QqMailService = class {
     if (!id2) throw failure4("AUTHORIZATION_REQUIRED", "Explicit, unexpired mail task authorization is required.");
     return this.#authorizations.consume(id2, this.#authorizationContext(account), operation);
   }
-  async #checkAuthorization(receipt, action) {
-    if (receipt) this.#authorizations.assertStillValid(receipt, this.#authorizationContext(await this.#requireAccount()));
+  async #checkAuthorization(receipt, action, expectedAccount) {
+    const active = await this.#requireAccount();
+    if (receipt) this.#authorizations.assertStillValid(receipt, this.#authorizationContext(active));
+    if (active.accountScope !== expectedAccount.accountScope) {
+      throw failure4("ACCOUNT_CHANGED", "The account changed before the mailbox write was dispatched. Refresh message references before continuing.");
+    }
     this.#assertWriteAuthority(action);
   }
   async #ensureDrafts() {
@@ -89159,10 +89164,10 @@ var QqMailService = class {
           const removals = [];
           placeFlag("\\Seen", input2.read, additions, removals);
           placeFlag("\\Flagged", input2.starred, additions, removals);
-          await this.#checkAuthorization(authorization, "flags");
+          await this.#checkAuthorization(authorization, "flags", account);
           if (additions.length) started = true;
           await session.addFlags(uids, additions);
-          await this.#checkAuthorization(authorization, "flags");
+          await this.#checkAuthorization(authorization, "flags", account);
           if (removals.length) started = true;
           await session.removeFlags(uids, removals);
           completed += uids.length;
@@ -89448,7 +89453,7 @@ var QqMailService = class {
       for (const group of groupLocators(locators)) {
         try {
           await this.#selectAndValidate(session, group[0]);
-          await this.#checkAuthorization(authorization, "trash");
+          await this.#checkAuthorization(authorization, "trash", account);
           await session.moveMessages([...new Set(group.map((entry) => entry.uid))], destination);
           completedCount += group.length;
         } catch (error64) {
@@ -112508,7 +112513,7 @@ var nodemailer = {
 var nodemailer_default = nodemailer;
 
 // src/version.ts
-var VERSION = "0.4.2";
+var VERSION = "0.4.3";
 
 // src/mail/gateways.ts
 var TLS_OPTIONS = Object.freeze({ rejectUnauthorized: true, minVersion: "TLSv1.2" });

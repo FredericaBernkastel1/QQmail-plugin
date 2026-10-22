@@ -20,7 +20,7 @@ Normal installation does not run inside an AppContainer sandbox. The plugin cann
 
 Attachment paths must use their canonical local spelling. Windows 8.3 short-name aliases may be rejected; select the file using its normal full path. The plugin does not relax its path and handle checks to accept these aliases.
 
-The inherited interactive IMAP path has a narrower account-switch cancellation guarantee than task grants: if an operation without a grant was already started and, where required, approved, an account switch during IMAP connection or mailbox selection can still let that operation finish against the captured original account. It does not switch the operation to the new account or mix credentials. Do not rely on changing the active account to cancel such an in-flight operation. Grant-backed writes and SMTP sending recheck account binding before dispatch. New calls with old references are rejected.
+Interactive and grant-backed IMAP writes now recheck the active account revision immediately before each flag or move dispatch, including after connection and mailbox-selection waits. Credential replacement and A-to-B-to-A switches invalidate pending writes. Already dispatched operations cannot be recalled; partial flag/move outcomes remain explicit. In-flight reads retain their paired original account snapshot. SMTP retains its existing final dispatch checks.
 
 Task permissions are finite, not semantic policies. They do not restrict content to what a purpose sentence describes. A read-only profile has six read tools and no grant management; the authorized profile requires a grant for its exposed writes. In the default interactive profile, omitting a grant uses the original interactive rules.
 
