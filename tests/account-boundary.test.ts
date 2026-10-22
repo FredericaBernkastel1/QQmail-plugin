@@ -38,6 +38,7 @@ function harness(provider: MailAccountProvider, approve: () => Promise<boolean> 
     attachmentStorage: { save: async () => { throw Error("No attachment writes"); } },
     imapGateway: { connect }, smtpGateway: { verify: async () => undefined, send },
     sendApproval: { confirm: approve },
+    mutationApproval: { confirm: async () => ({ status: "approved" }) },
   });
   return { service, session, connect, send };
 }
@@ -142,6 +143,51 @@ describe("account state and credential boundaries", () => {
 });
 
 describe("account-scoped mail objects", () => {
+  for (const operation of ["flags", "move", "trash"] as const) {
+    for (const waitingAt of ["connect", "select"] as const) {
+      for (const change of ["account", "credential", "roundtrip"] as const) {
+        it(`blocks interactive ${operation} after ${change} changes during ${waitingAt}`, async () => {
+          const { store } = await configured();
+          const h = harness(createStoredMailAccountProvider(store));
+          const found = await h.service.searchEmails({}) as { messages: { messageRef: string }[] };
+          const messageRefs = [found.messages[0]!.messageRef];
+          const changeAccount = async () => {
+            if (change === "credential") await store.setCredential("SYNTHETIC_REPLACED", (await store.snapshot()).revision);
+            else {
+              await store.saveConfig(syntheticConfig("other@qq.com"), (await store.snapshot()).revision);
+              if (change === "roundtrip") await store.saveConfig(syntheticConfig(), (await store.snapshot()).revision);
+            }
+          };
+          if (waitingAt === "connect") h.connect.mockImplementationOnce(async () => { await changeAccount(); return h.session; });
+          else vi.mocked(h.session.selectMailbox).mockImplementationOnce(async mailbox => {
+            await changeAccount(); return { path: mailbox, uidValidity: "42", exists: 2, readOnly: false };
+          });
+          const request = operation === "flags" ? h.service.setEmailFlags({ messageRefs, read: true })
+            : operation === "move" ? h.service.moveEmails({ messageRefs, destination: "Sent Messages" })
+            : h.service.trashEmails({ messageRefs });
+          await expect(request).rejects.toMatchObject({ code: "ACCOUNT_CHANGED" });
+          expect(h.session.addFlags).not.toHaveBeenCalled();
+          expect(h.session.removeFlags).not.toHaveBeenCalled();
+          expect(h.session.moveMessages).not.toHaveBeenCalled();
+          expect(h.session.close).toHaveBeenCalled();
+        });
+      }
+    }
+  }
+
+  it("stops the second flag write and reports uncertainty after an account change", async () => {
+    const { store } = await configured();
+    const h = harness(createStoredMailAccountProvider(store));
+    const found = await h.service.searchEmails({}) as { messages: { messageRef: string }[] };
+    vi.mocked(h.session.addFlags).mockImplementationOnce(async () => {
+      await store.setCredential("SYNTHETIC_REPLACED", (await store.snapshot()).revision);
+    });
+    await expect(h.service.setEmailFlags({ messageRefs: [found.messages[0]!.messageRef], read: true, starred: false }))
+      .resolves.toMatchObject({ ok: false, status: "partial_failure", unconfirmed: 1, failure: { code: "ACCOUNT_CHANGED" } });
+    expect(h.session.addFlags).toHaveBeenCalledOnce();
+    expect(h.session.removeFlags).not.toHaveBeenCalled();
+  });
+
   for (const operation of ["read", "batch", "thread", "flags", "move", "trash", "download", "reply"]) {
     it(`rejects a previous account's reference before ${operation}`, async () => {
       const { store } = await configured();

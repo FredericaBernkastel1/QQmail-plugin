@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 
+// Includes Windows PowerShell startup and the fixed native declaration compile.
+// Slow cold starts must not be mistaken for a network drive. Failure still denies I/O.
+export const DRIVE_QUERY_TIMEOUT_MS = 30_000;
+
 // Query drive metadata before any filesystem request follows a mapped drive.
 // Paths and mail input never become executable PowerShell text.
 const DRIVE_SCRIPT = String.raw`
@@ -28,7 +32,7 @@ export async function isLocalWindowsDrive(root: string): Promise<boolean> {
       if (!allowed) child.kill();
       resolve(allowed);
     };
-    const timer = setTimeout(() => finish(false), 10_000);
+    const timer = setTimeout(() => finish(false), DRIVE_QUERY_TIMEOUT_MS);
     child.stdout.on("data", (data: Buffer) => {
       bytes += data.length;
       if (bytes > 1024) finish(false);

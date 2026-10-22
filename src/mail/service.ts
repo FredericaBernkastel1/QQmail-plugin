@@ -188,8 +188,12 @@ export class QqMailService {
     return this.#authorizations.consume(id, this.#authorizationContext(account), operation);
   }
 
-  async #checkAuthorization(receipt: MailAuthorizationReceipt | undefined, action: "edit_draft" | "send" | "trash" | "flags"): Promise<void> {
-    if (receipt) this.#authorizations.assertStillValid(receipt, this.#authorizationContext(await this.#requireAccount()));
+  async #checkAuthorization(receipt: MailAuthorizationReceipt | undefined, action: "edit_draft" | "send" | "trash" | "flags", expectedAccount: AccountOperation): Promise<void> {
+    const active = await this.#requireAccount();
+    if (receipt) this.#authorizations.assertStillValid(receipt, this.#authorizationContext(active));
+    if (active.accountScope !== expectedAccount.accountScope) {
+      throw failure("ACCOUNT_CHANGED", "The account changed before the mailbox write was dispatched. Refresh message references before continuing.");
+    }
     this.#assertWriteAuthority(action);
   }
 
@@ -918,10 +922,10 @@ export class QqMailService {
         const removals: string[] = [];
         placeFlag("\\Seen", input.read, additions, removals);
         placeFlag("\\Flagged", input.starred, additions, removals);
-        await this.#checkAuthorization(authorization, "flags");
+        await this.#checkAuthorization(authorization, "flags", account);
         if (additions.length) started = true;
         await session.addFlags(uids, additions);
-        await this.#checkAuthorization(authorization, "flags");
+        await this.#checkAuthorization(authorization, "flags", account);
         if (removals.length) started = true;
         await session.removeFlags(uids, removals);
         completed += uids.length;
@@ -1250,7 +1254,7 @@ export class QqMailService {
       for (const group of groupLocators(locators)) {
         try {
           await this.#selectAndValidate(session, group[0]!);
-          await this.#checkAuthorization(authorization, "trash");
+          await this.#checkAuthorization(authorization, "trash", account);
           await session.moveMessages([...new Set(group.map((entry) => entry.uid))], destination);
           completedCount += group.length;
         } catch (error) {
