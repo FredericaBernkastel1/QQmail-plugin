@@ -31,3 +31,17 @@ Tests, annotations and source review are bounded evidence, not security certific
 Do not post authorization codes, mailbox contents, attachments, account files or raw system traces in public issues. Use GitHub private vulnerability reporting if available; otherwise post a non-sensitive summary and request a private contact method before sharing exploit details.
 
 Use synthetic accounts and fixtures in an isolated test environment. The TLS key under `tests/fixtures/` is deliberately public and test-only; never reuse it or trust its certificate system-wide. Public source publication excludes personal logs, raw OS evidence, private configuration, caches and test-environment state.
+
+
+## Embedded settings channel
+
+The plugin details page exposes a settings action, not a primitive plaintext
+password field. The three settings transport tools are app-visible only; this
+visibility does not authorize writes. A session-bound RSA-OAEP-SHA256/AES-256-GCM
+envelope keeps authorization codes out of plaintext MCP arguments. Per-process
+keys, bounded payloads, request IDs, expiry and replay checks apply. The server
+accepts only existing settings routes and validates them through the same code
+used by browser fallback. Native approvals and account revision checks remain.
+Responses never return credentials. This is not protection from a compromised
+host that can inspect the form itself, or from other same-user programs.
+The read-only and authorized profiles expose neither this channel nor settings.

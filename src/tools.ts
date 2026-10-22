@@ -174,7 +174,8 @@ export function registerQqMailTools(server: McpServer, services: ToolServices, p
       description: "Open the local visual settings interface. Use this to enter or replace the QQ Mail authorization code.",
       inputSchema: emptyInput,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-      _meta: { ui: { resourceUri: SETTINGS_RESOURCE_URI, visibility: ["model", "app"] } },
+      _meta: { ui: { resourceUri: SETTINGS_RESOURCE_URI, visibility: ["model", "app"] },
+        "openai/ui": { entrypoints: [{ type: "global" }, { type: "thread" }] } },
     },
     handler("QQ Mail settings", () => services.openSettings()),
   );

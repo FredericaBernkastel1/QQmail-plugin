@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+import { SealedSettingsChannel, type SealedSettingsRequest } from "./sealed-request.js";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -54,6 +56,7 @@ class HttpError extends Error {
 interface InternalSession {
   expiresAt: number;
   allowOpaqueOrigin: boolean;
+  requests: Set<string>;
 }
 
 export interface SettingsServerOptions {
@@ -82,6 +85,8 @@ export class SettingsServer {
   readonly #requestControllers = new Set<AbortController>();
   readonly #sockets = new Set<Socket>();
 
+  readonly #sealedChannel = new SealedSettingsChannel();
+  #bridgeActive = 0;
   #server: Server | undefined;
   #template = "";
   #origin = "";
@@ -172,8 +177,10 @@ export class SettingsServer {
       throw new Error("Could not create a unique settings session");
     }
 
+    if (this.#sessions.size >= 64) throw new Error("Too many settings sessions; close old settings and retry later");
     const expiresAtMs = this.#now() + this.#sessionTtlMs;
     this.#sessions.set(token, {
+      requests: new Set(),
       expiresAt: expiresAtMs,
       allowOpaqueOrigin: options.allowOpaqueOrigin === true,
     });
@@ -196,7 +203,8 @@ export class SettingsServer {
       throw new Error("Settings session does not belong to this server or has expired");
     }
     internalSession.allowOpaqueOrigin = true;
-    return renderTemplate(template, session.apiBase, session.token, createNonce());
+    return renderTemplate(template, session.apiBase, session.token, createNonce())
+      .replaceAll("__QQ_MAIL_BRIDGE_KEY__", jsonLiteral(await this.#sealedChannel.publicKey()));
   }
 
   async close(): Promise<void> {
@@ -255,7 +263,8 @@ export class SettingsServer {
       if ((requestUrl.pathname === "/" || requestUrl.pathname === "/settings") && method === "GET") {
         this.#validateOptionalOrigin(request);
         const nonce = createNonce();
-        const html = renderTemplate(this.#template, this.origin, "", nonce);
+        const html = renderTemplate(this.#template, this.origin, "", nonce)
+          .replaceAll("__QQ_MAIL_BRIDGE_KEY__", jsonLiteral(""));
         response.statusCode = 200;
         response.setHeader("Content-Type", "text/html; charset=utf-8");
         response.setHeader("Content-Security-Policy", htmlContentSecurityPolicy(this.origin, nonce));
@@ -273,65 +282,7 @@ export class SettingsServer {
       }
 
       const context = this.#authorizeApiRequest(request, response, method);
-      if (method === "GET" && requestUrl.pathname === "/api/profiles") {
-        if (!this.#callbacks.getProfiles) throw new HttpError(404, "Account profiles are unavailable");
-        const value = await this.#callbacks.getProfiles(context);
-        sendJson(response, 200, sanitizeProfiles(value));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/profiles") {
-        if (!this.#callbacks.changeProfile) throw new HttpError(404, "Account profiles are unavailable");
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const result = await this.#callbacks.changeProfile(parseProfileRequest(body), context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "GET" && requestUrl.pathname === "/api/config") {
-        const config = await this.#callbacks.getConfig(context);
-        sendJson(response, 200, sanitizePublicConfig(config));
-        return;
-      }
-      if (method === "GET" && requestUrl.pathname === "/api/status") {
-        const status = await this.#callbacks.getStatus(context);
-        sendJson(response, 200, sanitizeStatus(status));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/credential") {
-        const authorizationCode = await readCredential(request, this.#maxCredentialBytes);
-        const revision = readString(request.headers["x-qq-mail-account-revision"], 64, "accountRevision");
-        if (!/^[a-f0-9-]{36,64}$/u.test(revision)) throw new HttpError(400, "Invalid account revision");
-        const result = await this.#callbacks.setCredential(authorizationCode, context, revision);
-        sendJson(response, 200, sanitizeCredentialResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/test") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const testRequest = parseTestRequest(body);
-        const result = await this.#callbacks.test(testRequest, context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/save") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const saveRequest: SettingsSaveRequest = { config: parseFormConfig(body.config),
-          ...(body.expectedRevision === undefined ? {} : { expectedRevision: readRevision(body.expectedRevision) }) };
-        const result = await this.#callbacks.save(saveRequest, context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/clear") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const result = await this.#callbacks.clear(context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-
-      response.setHeader("Allow", requestUrl.pathname.startsWith("/api/") ? "GET, POST" : "GET");
-      throw new HttpError(405, "Method not allowed");
+      sendJson(response, 200, await this.#dispatch(request, requestUrl.pathname, method, context));
     } catch (error) {
       if (response.headersSent || response.writableEnded) {
         response.end();
@@ -343,6 +294,95 @@ export class SettingsServer {
       }
       // Callback errors can contain server responses or credentials, so never echo them.
       sendJson(response, 500, { ok: false, message: "操作失败，请检查设置后重试。" });
+    }
+  }
+
+  async #dispatch(request: IncomingMessage, path: string, method: string, context: SettingsRequestContext): Promise<unknown> {
+      if (method === "GET" && path === "/api/profiles") {
+        if (!this.#callbacks.getProfiles) throw new HttpError(404, "Account profiles are unavailable");
+        const value = await this.#callbacks.getProfiles(context);
+        return sanitizeProfiles(value);
+      }
+      if (method === "POST" && path === "/api/profiles") {
+        if (!this.#callbacks.changeProfile) throw new HttpError(404, "Account profiles are unavailable");
+        const body = await readJsonObject(request, this.#maxBodyBytes);
+        rejectCredentialFields(body);
+        const result = await this.#callbacks.changeProfile(parseProfileRequest(body), context);
+        return sanitizeActionResult(result);
+      }
+      if (method === "GET" && path === "/api/config") {
+        const config = await this.#callbacks.getConfig(context);
+        return sanitizePublicConfig(config);
+      }
+      if (method === "GET" && path === "/api/status") {
+        const status = await this.#callbacks.getStatus(context);
+        return sanitizeStatus(status);
+      }
+      if (method === "POST" && path === "/api/credential") {
+        const authorizationCode = await readCredential(request, this.#maxCredentialBytes);
+        const revision = readString(request.headers["x-qq-mail-account-revision"], 64, "accountRevision");
+        if (!/^[a-f0-9-]{36,64}$/u.test(revision)) throw new HttpError(400, "Invalid account revision");
+        const result = await this.#callbacks.setCredential(authorizationCode, context, revision);
+        return sanitizeCredentialResult(result);
+      }
+      if (method === "POST" && path === "/api/test") {
+        const body = await readJsonObject(request, this.#maxBodyBytes);
+        rejectCredentialFields(body);
+        const testRequest = parseTestRequest(body);
+        const result = await this.#callbacks.test(testRequest, context);
+        return sanitizeActionResult(result);
+      }
+      if (method === "POST" && path === "/api/save") {
+        const body = await readJsonObject(request, this.#maxBodyBytes);
+        rejectCredentialFields(body);
+        const saveRequest: SettingsSaveRequest = { config: parseFormConfig(body.config),
+          ...(body.expectedRevision === undefined ? {} : { expectedRevision: readRevision(body.expectedRevision) }) };
+        const result = await this.#callbacks.save(saveRequest, context);
+        return sanitizeActionResult(result);
+      }
+      if (method === "POST" && path === "/api/clear") {
+        const body = await readJsonObject(request, this.#maxBodyBytes);
+        rejectCredentialFields(body);
+        const result = await this.#callbacks.clear(context);
+        return sanitizeActionResult(result);
+      }
+
+
+    throw new HttpError(405, "Method not allowed");
+  }
+
+  /** UI-only sealed transport; shared validators and native approvals also apply here. */
+  async requestFromApp(envelope: SealedSettingsRequest, signal: AbortSignal): Promise<{ status: number; body: unknown }> {
+    if (this.#bridgeActive >= 4 || signal.aborted || !this.#server) {
+      return { status: 409, body: { ok: false, message: "设置请求已取消或正在处理中，请稍后重试。" } };
+    }
+    this.#bridgeActive++;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal.addEventListener("abort", abort, { once: true });
+    this.#requestControllers.add(controller);
+    try {
+      let input;
+      try { input = await this.#sealedChannel.open(envelope); }
+      catch { throw new HttpError(400, "无法验证加密设置请求，请重新打开插件设置。"); }
+      if (signal.aborted || controller.signal.aborted) throw new HttpError(409, "设置请求已取消。");
+      const session = this.#findActiveSession(input.token);
+      if (!session?.allowOpaqueOrigin) throw new HttpError(401, "设置会话已过期，请重新打开插件设置。");
+      if (session.requests.has(input.requestId) || session.requests.size >= 512) {
+        throw new HttpError(409, "设置请求已使用或会话请求上限已到，请重新打开插件设置。");
+      }
+      session.requests.add(input.requestId); // Consume before dispatch, including cancelled writes.
+      const request = Readable.from(input.body === undefined ? [] : [Buffer.from(input.body)]) as IncomingMessage;
+      request.headers = input.headers;
+      try { return { status: 200, body: await this.#dispatch(request, input.path, input.method, { signal: controller.signal }) }; }
+      finally { request.destroy(); }
+    } catch (error) {
+      return { status: error instanceof HttpError ? error.status : 500,
+        body: { ok: false, message: error instanceof HttpError ? error.publicMessage : "操作失败，请检查设置后重试。" } };
+    } finally {
+      this.#bridgeActive--;
+      signal.removeEventListener("abort", abort);
+      this.#requestControllers.delete(controller);
     }
   }
 

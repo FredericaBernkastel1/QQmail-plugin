@@ -1,14 +1,14 @@
 {
-  ".codex-plugin/plugin.json": "f38c9d33bd75e05b5d71fc54cf9be91b4ec26f4db8ffc518f02c9fb08cc59a5d",
+  ".codex-plugin/plugin.json": "21c715037d07764b262e56ca97a818246b3b97d947bca89a528f87cbc94b364f",
   ".mcp.json": "948ac26a0d5871df25a01a75a2f40a548b65079b62490f613d1e97a49b573248",
   "LICENSE": "a7fe1b24b219fe41c9ee45b9d103e9ec1ba5fb7fd426b9cb7d2ca2629f0803ee",
-  "README.md": "796b3d9339cd6408d9d04a72e2aa979c99b747ca79860d0a65f53630de7aa5e9",
-  "SBOM.json": "83fd9bf7206724ae98fc1ed365c154f9ed5fcdc9ab6927f731a46215bda0f645",
+  "README.md": "0771d9222a3175b2de30874bbb9a9c736d055b14064c90bae8ce78d903b48ba9",
+  "SBOM.json": "482e1cab27b477498d8d5cdbcca652f3dd00334908c72da6bbbccc737853d40e",
   "THIRD_PARTY_NOTICES.md": "e7d43d66c0b7914279284b12e14fa18b7a25c808246350a3daf629fa0762b824",
-  "dist/server.mjs": "b3bdfd4c6fe8f333bbbcef751a786163c675bd961adec26f9f3471b5447ca49e",
+  "dist/server.mjs": "4c73a728c2553db215555ad2b2fa0678080df2bf14ee3ab9d9cb6c986f1cbbbd",
   "dist/server.mjs.LEGAL.txt": "9d139daa4b18afa98d7d012bfd4cc790c432b99fa6325833857d6313bbb2212d",
-  "dist/server.mjs.map": "d01c180adabbb1ec9261f854f4229804cbef5f435aaa31250fb29d12a7add237",
-  "dist/ui/settings.html": "c23731443c06962a95e0b5fedb682c34f6f22f507d6e9893963b4284e3cdafc8",
+  "dist/server.mjs.map": "39af32f5937f9f4d9e05f8bb3148ba33fe071accbb0b19e6d3741156c75c3507",
+  "dist/ui/settings.html": "aa745f5526e30de70ac770349d3ccc8e16029a313461578b1c507fc90dee0cbc",
   "mcp.json": "35186cb32c9bba60d3f4b1c7c8c20c7246af990f396c4bdf3db1c71ab02ae5ab",
-  "plugin.json": "9803c86c0e2323fd1ac1eb08c8ea3ae71b6db0ed470ddedc8ce9a811fb7f3622"
+  "plugin.json": "9a080bf77a119b249fd197988fab14e856d0f5decef990908b883b8641717e45"
 }

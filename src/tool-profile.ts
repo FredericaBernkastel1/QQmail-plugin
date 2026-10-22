@@ -18,6 +18,7 @@ const authorizationTools = [
 const interactiveTools = [
   ...readTools, ...draftAndWriteTools, ...authorizationTools,
   "open_settings", "test_connection", "list_accounts", "switch_account",
+  "plugin_settings_read", "plugin_settings_update", "settings_request",
   "select_attachments", "list_attachments", "remove_attachments", "download_attachment", "move_emails",
 ] as const;
 

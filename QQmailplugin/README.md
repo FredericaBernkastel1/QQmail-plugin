@@ -1,4 +1,4 @@
-# QQ 邮箱 0.4.3
+# QQ 邮箱 0.4.4
 
 Codex 本地 Windows 插件，提供邮箱设置、连接测试、邮件搜索/读取、草稿、带附件发送、标记、移动、移入垃圾箱和附件下载，并新增有限任务授权。永久删除不受支持。使用本机 stdio MCP，无需自建远程服务器、域名或外部 OAuth 服务；邮箱账户仍须在本地设置页配置。
 
@@ -91,3 +91,27 @@ move_emails 继续经独立 Windows 确认；trash_emails 使用逐次确认或�
 本地改编自 `moondream69/QQmail-plugin` 提交 `146923e7277988b451ff69b772966d6e4f723d1a`。运行文件由 TypeScript 与设置页源码构建。依赖版本和完整性见随包 SBOM 与校验清单。
 
 开发测试使用合成邮箱与内容；不把无真实邮箱测试表述为已经验证用户实际 QQ 邮箱的服务配置。
+
+
+## Plugin-page configuration (0.4.4)
+
+Open the QQ Mail plugin details page, then use the account/settings action.
+The settings form opens inside the plugin. Global and thread entrypoints also
+open this form. Enter the account and authorization code there, then save.
+The separate Windows confirmation asks only for approval; it contains no fields
+to fill. A failed initial connection offers Reconnect instead of leaving an
+unexplained disabled form. Expired sessions must be reopened.
+
+Embedded forms use the MCP connection, with RSA-OAEP-SHA256 and AES-256-GCM
+envelopes so authorization codes are not plaintext tool arguments. The server
+uses ephemeral keys, bounded sessions, replay checks and shared request validation.
+The bridge is app-visible only and never grants approval: native confirmation,
+account revisions and stored-secret protections still apply. Host tool visibility
+is not a security boundary. A compromised host can inspect a rendered form; this
+does not provide protection from software running as the user.
+
+Structured settings expose an action, not a plaintext password property. No
+credential is returned in tool responses, injected into model context or sent to
+an external settings service. Mail connection tests contact the configured mail
+servers only after the existing approval. Browser fallback remains available.
+The encrypted settings bridge is absent in read-only and authorized profiles.

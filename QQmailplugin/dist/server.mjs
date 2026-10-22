@@ -37574,13 +37574,13 @@ var require_ipv4 = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Address4 = void 0;
     var common = __importStar(require_common());
-    var constants = __importStar(require_constants3());
+    var constants2 = __importStar(require_constants3());
     var address_error_1 = require_address_error();
-    var isCorrect4 = common.isCorrect(constants.BITS);
+    var isCorrect4 = common.isCorrect(constants2.BITS);
     var Address4 = class _Address4 {
       constructor(address) {
         this.addressMinusSuffix = "";
-        this.groups = constants.GROUPS;
+        this.groups = constants2.GROUPS;
         this.parsedAddress = [];
         this.parsedSubnet = "";
         this.subnet = "/32";
@@ -37590,17 +37590,17 @@ var require_ipv4 = __commonJS({
         this.isInSubnet = common.isInSubnet;
         this.isHostInSubnet = common.isHostInSubnet;
         this.address = address;
-        const subnet = constants.RE_SUBNET_STRING.exec(address);
+        const subnet = constants2.RE_SUBNET_STRING.exec(address);
         if (subnet) {
           this.parsedSubnet = subnet[0].replace("/", "");
           this.subnetMask = parseInt(this.parsedSubnet, 10);
           this.subnet = `/${this.subnetMask}`;
-          if (this.subnetMask < 0 || this.subnetMask > constants.BITS) {
+          if (this.subnetMask < 0 || this.subnetMask > constants2.BITS) {
             throw new address_error_1.AddressError("Invalid subnet mask.");
           }
-          address = address.replace(constants.RE_SUBNET_STRING, "");
+          address = address.replace(constants2.RE_SUBNET_STRING, "");
         }
-        const longest = constants.GROUPS * 4 - 1;
+        const longest = constants2.GROUPS * 4 - 1;
         if (address.length > longest) {
           throw new address_error_1.AddressError(`IPv4 addresses are at most ${longest} characters.`);
         }
@@ -37633,7 +37633,7 @@ var require_ipv4 = __commonJS({
         if (groups.some((group) => /^0\d/.test(group))) {
           throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.");
         }
-        if (!address.match(constants.RE_ADDRESS)) {
+        if (!address.match(constants2.RE_ADDRESS)) {
           throw new address_error_1.AddressError("Invalid IPv4 address.");
         }
         return groups;
@@ -37656,7 +37656,7 @@ var require_ipv4 = __commonJS({
        * address.subnetMask; // 24
        */
       static fromAddressAndMask(address, mask) {
-        const bits = common.prefixLengthFromMask(new _Address4(mask).bigInt(), constants.BITS);
+        const bits = common.prefixLengthFromMask(new _Address4(mask).bigInt(), constants2.BITS);
         return new _Address4(`${address}/${bits}`);
       }
       /**
@@ -37670,9 +37670,9 @@ var require_ipv4 = __commonJS({
        */
       static fromAddressAndWildcardMask(address, wildcardMask) {
         const wildcard = new _Address4(wildcardMask).bigInt();
-        const allOnes = (BigInt(1) << BigInt(constants.BITS)) - BigInt(1);
+        const allOnes = (BigInt(1) << BigInt(constants2.BITS)) - BigInt(1);
         const mask = wildcard ^ allOnes;
-        const bits = common.prefixLengthFromMask(mask, constants.BITS);
+        const bits = common.prefixLengthFromMask(mask, constants2.BITS);
         return new _Address4(`${address}/${bits}`);
       }
       /**
@@ -37690,7 +37690,7 @@ var require_ipv4 = __commonJS({
        */
       static fromWildcard(input2) {
         const groups = input2.split(".");
-        if (groups.length !== constants.GROUPS) {
+        if (groups.length !== constants2.GROUPS) {
           throw new address_error_1.AddressError("Wildcard pattern must have 4 octets");
         }
         let firstWildcard = -1;
@@ -37705,7 +37705,7 @@ var require_ipv4 = __commonJS({
         }
         const trailing = firstWildcard === -1 ? 0 : groups.length - firstWildcard;
         const replaced = groups.map((g) => g === "*" ? "0" : g);
-        const subnetBits = constants.BITS - trailing * 8;
+        const subnetBits = constants2.BITS - trailing * 8;
         return new _Address4(`${replaced.join(".")}/${subnetBits}`);
       }
       /**
@@ -37751,7 +37751,7 @@ var require_ipv4 = __commonJS({
        * address.correctForm(); // '192.0.2.42'
        */
       static fromArpa(arpaFormAddress) {
-        const longest = constants.GROUPS * 4 - 1 + "/32".length + ".in-addr.arpa.".length;
+        const longest = constants2.GROUPS * 4 - 1 + "/32".length + ".in-addr.arpa.".length;
         if (arpaFormAddress.length > longest) {
           throw new address_error_1.AddressError(`in-addr.arpa names are at most ${longest} characters.`);
         }
@@ -37782,7 +37782,7 @@ var require_ipv4 = __commonJS({
       toGroup6() {
         const output2 = [];
         let i;
-        for (i = 0; i < constants.GROUPS; i += 2) {
+        for (i = 0; i < constants2.GROUPS; i += 2) {
           output2.push(`${common.stringToPaddedHex(this.parsedAddress[i])}${common.stringToPaddedHex(this.parsedAddress[i + 1])}`);
         }
         return output2.join(":");
@@ -37799,7 +37799,7 @@ var require_ipv4 = __commonJS({
        * @returns {bigint}
        */
       _startAddress() {
-        return BigInt(`0b${this.mask() + "0".repeat(constants.BITS - this.subnetMask)}`);
+        return BigInt(`0b${this.mask() + "0".repeat(constants2.BITS - this.subnetMask)}`);
       }
       /**
        * The first address in the range given by this address' subnet.
@@ -37829,7 +37829,7 @@ var require_ipv4 = __commonJS({
        * new Address4('10.0.0.0/24').offset(1).correctForm(); // '10.0.0.1'
        */
       offset(n) {
-        return _Address4.fromBigInt(common.offsetBigInt(this.bigInt(), n, constants.BITS, "IPv4")).withSubnetMask(this.subnetMask);
+        return _Address4.fromBigInt(common.offsetBigInt(this.bigInt(), n, constants2.BITS, "IPv4")).withSubnetMask(this.subnetMask);
       }
       /**
        * Returns the network that follows this address's network: the address after
@@ -37840,7 +37840,7 @@ var require_ipv4 = __commonJS({
        * new Address4('10.0.0.0/24').nextNetwork().networkForm(); // '10.0.1.0/24'
        */
       nextNetwork() {
-        return _Address4.fromBigInt(common.offsetBigInt(this._endAddress(), 1, constants.BITS, "IPv4")).withSubnetMask(this.subnetMask);
+        return _Address4.fromBigInt(common.offsetBigInt(this._endAddress(), 1, constants2.BITS, "IPv4")).withSubnetMask(this.subnetMask);
       }
       withSubnetMask(subnetMask) {
         return new _Address4(`${this.correctForm()}/${subnetMask}`);
@@ -37850,7 +37850,7 @@ var require_ipv4 = __commonJS({
        * @returns {bigint}
        */
       _endAddress() {
-        return BigInt(`0b${this.mask() + "1".repeat(constants.BITS - this.subnetMask)}`);
+        return BigInt(`0b${this.mask() + "1".repeat(constants2.BITS - this.subnetMask)}`);
       }
       /**
        * The last address in the range given by this address' subnet
@@ -37875,7 +37875,7 @@ var require_ipv4 = __commonJS({
        * @returns {Address4}
        */
       subnetMaskAddress() {
-        return _Address4.fromBigInt(BigInt(`0b${"1".repeat(this.subnetMask)}${"0".repeat(constants.BITS - this.subnetMask)}`));
+        return _Address4.fromBigInt(BigInt(`0b${"1".repeat(this.subnetMask)}${"0".repeat(constants2.BITS - this.subnetMask)}`));
       }
       /**
        * The Cisco-style wildcard mask, e.g. `0.0.0.255` for a `/24`. This is
@@ -37884,7 +37884,7 @@ var require_ipv4 = __commonJS({
        * @returns {Address4}
        */
       wildcardMask() {
-        return _Address4.fromBigInt(BigInt(`0b${"0".repeat(this.subnetMask)}${"1".repeat(constants.BITS - this.subnetMask)}`));
+        return _Address4.fromBigInt(BigInt(`0b${"0".repeat(this.subnetMask)}${"1".repeat(constants2.BITS - this.subnetMask)}`));
       }
       /**
        * The network address in CIDR string form, e.g. `192.168.1.0/24` for
@@ -38065,7 +38065,7 @@ var require_ipv4 = __commonJS({
        */
       binaryZeroPad() {
         if (this._binaryZeroPad === void 0) {
-          this._binaryZeroPad = this.bigInt().toString(2).padStart(constants.BITS, "0");
+          this._binaryZeroPad = this.bigInt().toString(2).padStart(constants2.BITS, "0");
         }
         return this._binaryZeroPad;
       }
@@ -38080,7 +38080,7 @@ var require_ipv4 = __commonJS({
        */
       groupForV6() {
         const segments = this.parsedAddress;
-        return this.correctForm().replace(constants.RE_ADDRESS, `<span class="hover-group group-v4 group-6">${segments.slice(0, 2).join(".")}</span>.<span class="hover-group group-v4 group-7">${segments.slice(2, 4).join(".")}</span>`);
+        return this.correctForm().replace(constants2.RE_ADDRESS, `<span class="hover-group group-v4 group-6">${segments.slice(0, 2).join(".")}</span>.<span class="hover-group group-v4 group-7">${segments.slice(2, 4).join(".")}</span>`);
       }
     };
     exports.Address4 = Address4;
@@ -38102,7 +38102,7 @@ var require_ipv4 = __commonJS({
     ];
     var BENCHMARKING_V4 = new Address4("198.18.0.0/15");
     var RESERVED_V4 = new Address4("240.0.0.0/4");
-    var SPECIAL_PURPOSE_V4 = constants.SPECIAL_PURPOSE.map(([cidr, , reachable]) => ({
+    var SPECIAL_PURPOSE_V4 = constants2.SPECIAL_PURPOSE.map(([cidr, , reachable]) => ({
       subnet: new Address4(cidr),
       reachable
     }));
@@ -44668,11 +44668,11 @@ var require_codegen = __commonJS({
         const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
         return `${varKind} ${this.name}${rhs};` + _n;
       }
-      optimizeNames(names2, constants) {
+      optimizeNames(names2, constants2) {
         if (!names2[this.name.str])
           return;
         if (this.rhs)
-          this.rhs = optimizeExpr(this.rhs, names2, constants);
+          this.rhs = optimizeExpr(this.rhs, names2, constants2);
         return this;
       }
       get names() {
@@ -44689,10 +44689,10 @@ var require_codegen = __commonJS({
       render({ _n }) {
         return `${this.lhs} = ${this.rhs};` + _n;
       }
-      optimizeNames(names2, constants) {
+      optimizeNames(names2, constants2) {
         if (this.lhs instanceof code_1.Name && !names2[this.lhs.str] && !this.sideEffects)
           return;
-        this.rhs = optimizeExpr(this.rhs, names2, constants);
+        this.rhs = optimizeExpr(this.rhs, names2, constants2);
         return this;
       }
       get names() {
@@ -44753,8 +44753,8 @@ var require_codegen = __commonJS({
       optimizeNodes() {
         return `${this.code}` ? this : void 0;
       }
-      optimizeNames(names2, constants) {
-        this.code = optimizeExpr(this.code, names2, constants);
+      optimizeNames(names2, constants2) {
+        this.code = optimizeExpr(this.code, names2, constants2);
         return this;
       }
       get names() {
@@ -44783,12 +44783,12 @@ var require_codegen = __commonJS({
         }
         return nodes.length > 0 ? this : void 0;
       }
-      optimizeNames(names2, constants) {
+      optimizeNames(names2, constants2) {
         const { nodes } = this;
         let i = nodes.length;
         while (i--) {
           const n = nodes[i];
-          if (n.optimizeNames(names2, constants))
+          if (n.optimizeNames(names2, constants2))
             continue;
           subtractNames(names2, n.names);
           nodes.splice(i, 1);
@@ -44841,12 +44841,12 @@ var require_codegen = __commonJS({
           return void 0;
         return this;
       }
-      optimizeNames(names2, constants) {
+      optimizeNames(names2, constants2) {
         var _a5;
-        this.else = (_a5 = this.else) === null || _a5 === void 0 ? void 0 : _a5.optimizeNames(names2, constants);
-        if (!(super.optimizeNames(names2, constants) || this.else))
+        this.else = (_a5 = this.else) === null || _a5 === void 0 ? void 0 : _a5.optimizeNames(names2, constants2);
+        if (!(super.optimizeNames(names2, constants2) || this.else))
           return;
-        this.condition = optimizeExpr(this.condition, names2, constants);
+        this.condition = optimizeExpr(this.condition, names2, constants2);
         return this;
       }
       get names() {
@@ -44869,10 +44869,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.iteration})` + super.render(opts);
       }
-      optimizeNames(names2, constants) {
-        if (!super.optimizeNames(names2, constants))
+      optimizeNames(names2, constants2) {
+        if (!super.optimizeNames(names2, constants2))
           return;
-        this.iteration = optimizeExpr(this.iteration, names2, constants);
+        this.iteration = optimizeExpr(this.iteration, names2, constants2);
         return this;
       }
       get names() {
@@ -44908,10 +44908,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(opts);
       }
-      optimizeNames(names2, constants) {
-        if (!super.optimizeNames(names2, constants))
+      optimizeNames(names2, constants2) {
+        if (!super.optimizeNames(names2, constants2))
           return;
-        this.iterable = optimizeExpr(this.iterable, names2, constants);
+        this.iterable = optimizeExpr(this.iterable, names2, constants2);
         return this;
       }
       get names() {
@@ -44953,11 +44953,11 @@ var require_codegen = __commonJS({
         (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNodes();
         return this;
       }
-      optimizeNames(names2, constants) {
+      optimizeNames(names2, constants2) {
         var _a5, _b;
-        super.optimizeNames(names2, constants);
-        (_a5 = this.catch) === null || _a5 === void 0 ? void 0 : _a5.optimizeNames(names2, constants);
-        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names2, constants);
+        super.optimizeNames(names2, constants2);
+        (_a5 = this.catch) === null || _a5 === void 0 ? void 0 : _a5.optimizeNames(names2, constants2);
+        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names2, constants2);
         return this;
       }
       get names() {
@@ -45258,7 +45258,7 @@ var require_codegen = __commonJS({
     function addExprNames(names2, from) {
       return from instanceof code_1._CodeOrName ? addNames(names2, from.names) : names2;
     }
-    function optimizeExpr(expr, names2, constants) {
+    function optimizeExpr(expr, names2, constants2) {
       if (expr instanceof code_1.Name)
         return replaceName(expr);
       if (!canOptimize(expr))
@@ -45273,14 +45273,14 @@ var require_codegen = __commonJS({
         return items;
       }, []));
       function replaceName(n) {
-        const c = constants[n.str];
+        const c = constants2[n.str];
         if (c === void 0 || names2[n.str] !== 1)
           return n;
         delete names2[n.str];
         return c;
       }
       function canOptimize(e) {
-        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names2[c.str] === 1 && constants[c.str] !== void 0);
+        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names2[c.str] === 1 && constants2[c.str] !== void 0);
       }
     }
     function subtractNames(names2, from) {
@@ -89916,6 +89916,9 @@ var interactiveTools = [
   "test_connection",
   "list_accounts",
   "switch_account",
+  "plugin_settings_read",
+  "plugin_settings_update",
+  "settings_request",
   "select_attachments",
   "list_attachments",
   "remove_attachments",
@@ -112513,7 +112516,7 @@ var nodemailer = {
 var nodemailer_default = nodemailer;
 
 // src/version.ts
-var VERSION = "0.4.3";
+var VERSION = "0.4.4";
 
 // src/mail/gateways.ts
 var TLS_OPTIONS = Object.freeze({ rejectUnauthorized: true, minVersion: "TLSv1.2" });
@@ -119256,11 +119259,11 @@ var Protocol = class {
    *
    * Note that this will replace any previous request handler for the same method.
    */
-  setRequestHandler(requestSchema2, handler2) {
-    const method = getMethodLiteral(requestSchema2);
+  setRequestHandler(requestSchema3, handler2) {
+    const method = getMethodLiteral(requestSchema3);
     this.assertRequestHandlerCapability(method);
     this._requestHandlers.set(method, (request, extra) => {
-      const parsed = parseWithCompat(requestSchema2, request);
+      const parsed = parseWithCompat(requestSchema3, request);
       return Promise.resolve(handler2(parsed, extra));
     });
   }
@@ -119838,8 +119841,8 @@ var Server = class extends Protocol {
   /**
    * Override request handler registration to enforce server-side validation for tools/call.
    */
-  setRequestHandler(requestSchema2, handler2) {
-    const shape = getObjectShape(requestSchema2);
+  setRequestHandler(requestSchema3, handler2) {
+    const shape = getObjectShape(requestSchema3);
     const methodSchema = shape?.method;
     if (!methodSchema) {
       throw new Error("Schema is missing a method literal");
@@ -119873,9 +119876,9 @@ var Server = class extends Protocol {
         }
         return validationResult.data;
       };
-      return super.setRequestHandler(requestSchema2, wrappedHandler);
+      return super.setRequestHandler(requestSchema3, wrappedHandler);
     }
-    return super.setRequestHandler(requestSchema2, handler2);
+    return super.setRequestHandler(requestSchema3, handler2);
   }
   assertCapabilityForMethod(method) {
     switch (method) {
@@ -121068,6 +121071,61 @@ var EMPTY_COMPLETION_RESULT = {
   }
 };
 
+// src/settings/sealed-request.ts
+import { createDecipheriv as createDecipheriv2, generateKeyPair, privateDecrypt, constants } from "node:crypto";
+var sealedSettingsSchema = strictObject({
+  key: string2().regex(/^[A-Za-z0-9+/]+={0,2}$/).length(344),
+  iv: string2().regex(/^[A-Za-z0-9+/]+={0,2}$/).length(16),
+  ciphertext: string2().regex(/^[A-Za-z0-9+/]+={0,2}$/).min(24).max(18e4)
+});
+var requestSchema2 = strictObject({
+  token: string2().min(16).max(256),
+  requestId: string2().uuid(),
+  method: _enum2(["GET", "POST"]),
+  path: _enum2(["/api/config", "/api/status", "/api/profiles", "/api/save", "/api/credential", "/api/test", "/api/clear"]),
+  body: string2().max(1e5).optional(),
+  headers: strictObject({
+    "content-type": _enum2(["application/json", "application/octet-stream"]).optional(),
+    "x-qq-mail-account-revision": string2().regex(/^[a-f0-9-]{36,64}$/).optional()
+  })
+});
+var SealedSettingsChannel = class {
+  #keys;
+  #pair() {
+    return this.#keys ??= new Promise((resolve4, reject) => {
+      generateKeyPair("rsa", { modulusLength: 2048 }, (error64, publicKey, privateKey) => {
+        if (error64) reject(error64);
+        else resolve4({ publicKey, privateKey });
+      });
+    });
+  }
+  async publicKey() {
+    return (await this.#pair()).publicKey.export({ format: "der", type: "spki" }).toString("base64");
+  }
+  async open(input2) {
+    const envelope = sealedSettingsSchema.parse(input2);
+    const key = privateDecrypt({
+      key: (await this.#pair()).privateKey,
+      padding: constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256"
+    }, Buffer.from(envelope.key, "base64"));
+    let plain;
+    try {
+      if (key.length !== 32) throw new Error("Invalid key");
+      const encrypted = Buffer.from(envelope.ciphertext, "base64");
+      if (encrypted.length < 16 || encrypted.length > 13e4) throw new Error("Invalid envelope size");
+      const decipher = createDecipheriv2("aes-256-gcm", key, Buffer.from(envelope.iv, "base64"));
+      decipher.setAAD(Buffer.from("qq-mail-settings-v1"));
+      decipher.setAuthTag(encrypted.subarray(-16));
+      plain = Buffer.concat([decipher.update(encrypted.subarray(0, -16)), decipher.final()]);
+      return requestSchema2.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(plain)));
+    } finally {
+      key.fill(0);
+      plain?.fill(0);
+    }
+  }
+};
+
 // node_modules/@modelcontextprotocol/ext-apps/dist/src/server/index.js
 var D = "ui/resourceUri";
 var L = "text/html;profile=mcp-app";
@@ -121213,7 +121271,10 @@ function registerQqMailTools(server, services2, profile = "interactive", allowed
       description: "Open the local visual settings interface. Use this to enter or replace the QQ Mail authorization code.",
       inputSchema: emptyInput,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-      _meta: { ui: { resourceUri: SETTINGS_RESOURCE_URI, visibility: ["model", "app"] } }
+      _meta: {
+        ui: { resourceUri: SETTINGS_RESOURCE_URI, visibility: ["model", "app"] },
+        "openai/ui": { entrypoints: [{ type: "global" }, { type: "thread" }] }
+      }
     },
     handler("QQ Mail settings", () => services2.openSettings())
   );
@@ -121395,6 +121456,46 @@ function createQqMailMcpServer(services2, settingsUi, profile = "interactive", a
   if (profile === "interactive" && !settingsUi) throw new TypeError("Interactive QQ Mail requires a settings UI provider.");
   const server = new McpServer({ name: "qq-mail", version: VERSION });
   registerQqMailTools(server, services2, profile, allowedTools);
+  const settingsToolsAllowed = !allowedTools || ["open_settings", "plugin_settings_read", "plugin_settings_update", "settings_request"].every((name4) => allowedTools.has(name4));
+  if (profile === "interactive" && settingsUi && settingsToolsAllowed) {
+    server.server.registerCapabilities({ experimental: {
+      "openai/settings": { readTool: "plugin_settings_read", updateTool: "plugin_settings_update" }
+    } });
+    const values = {};
+    server.registerTool("plugin_settings_read", {
+      title: "QQ \u90AE\u7BB1\u63D2\u4EF6\u8BBE\u7F6E",
+      inputSchema: strictObject({}),
+      outputSchema: object({
+        schema: object({ type: literal("object"), properties: record(string2(), unknown()) }),
+        values: record(string2(), unknown()),
+        layout: array(unknown())
+      }),
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: { ui: { visibility: ["app"] } }
+    }, async () => ({ content: [], structuredContent: {
+      schema: { type: "object", properties: {} },
+      values,
+      layout: [{ kind: "group", title: "\u8D26\u6237\u4E0E\u6388\u6743\u7801", items: [{
+        kind: "tool",
+        tool: "open_settings",
+        description: "\u5728\u63D2\u4EF6\u5185\u586B\u5199\u90AE\u7BB1\u548C\u6388\u6743\u7801\uFF1B\u4FDD\u5B58\u65F6\u4EC5\u9700\u5728\u72EC\u7ACB\u786E\u8BA4\u7A97\u53E3\u786E\u8BA4\uFF0C\u65E0\u9700\u5728\u8BE5\u7A97\u53E3\u586B\u5199\u3002"
+      }] }]
+    } }));
+    server.registerTool("plugin_settings_update", {
+      title: "QQ \u90AE\u7BB1\u8BBE\u7F6E\u5165\u53E3",
+      inputSchema: strictObject({ set: strictObject({}) }),
+      outputSchema: object({ values: record(string2(), unknown()) }),
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: { ui: { visibility: ["app"] } }
+    }, async () => ({ content: [], structuredContent: { values } }));
+    server.registerTool("settings_request", {
+      title: "QQ \u90AE\u7BB1\u52A0\u5BC6\u8BBE\u7F6E\u901A\u9053",
+      inputSchema: sealedSettingsSchema,
+      description: "Encrypted settings form transport. Does not grant approval or accept plaintext credentials, commands, paths or URLs.",
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+      _meta: { ui: { visibility: ["app"] } }
+    }, async (input2, extra) => ({ content: [], _meta: { qqMailSettings: settingsUi.requestFromApp ? await settingsUi.requestFromApp(input2, extra.signal) : { status: 503, body: { ok: false, message: "\u63D2\u4EF6\u8BBE\u7F6E\u901A\u9053\u4E0D\u53EF\u7528\uFF0C\u8BF7\u91CD\u65B0\u52A0\u8F7D\u63D2\u4EF6\u3002" } } } }));
+  }
   if (profile === "interactive" && settingsUi) G(
     server,
     "QQ Mail Settings",
@@ -121414,6 +121515,7 @@ function createQqMailMcpServer(services2, settingsUi, profile = "interactive", a
           mimeType: L,
           text: await settingsUi.renderAppHtml(),
           _meta: {
+            "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "fullscreen" },
             ui: {
               csp: { connectDomains: [settingsUi.origin] },
               prefersBorder: false
@@ -121898,6 +122000,7 @@ function assertRequestActive(context) {
 }
 
 // src/settings/server.ts
+import { Readable } from "node:stream";
 import { randomBytes as randomBytes6, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
 import { readFile as readFile5 } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -121940,6 +122043,8 @@ var SettingsServer = class {
   #sessions = /* @__PURE__ */ new Map();
   #requestControllers = /* @__PURE__ */ new Set();
   #sockets = /* @__PURE__ */ new Set();
+  #sealedChannel = new SealedSettingsChannel();
+  #bridgeActive = 0;
   #server;
   #template = "";
   #origin = "";
@@ -122019,8 +122124,10 @@ var SettingsServer = class {
     if (!token2 || token2.length < 16 || this.#sessions.has(token2)) {
       throw new Error("Could not create a unique settings session");
     }
+    if (this.#sessions.size >= 64) throw new Error("Too many settings sessions; close old settings and retry later");
     const expiresAtMs = this.#now() + this.#sessionTtlMs;
     this.#sessions.set(token2, {
+      requests: /* @__PURE__ */ new Set(),
       expiresAt: expiresAtMs,
       allowOpaqueOrigin: options.allowOpaqueOrigin === true
     });
@@ -122039,7 +122146,7 @@ var SettingsServer = class {
       throw new Error("Settings session does not belong to this server or has expired");
     }
     internalSession.allowOpaqueOrigin = true;
-    return renderTemplate(template, session.apiBase, session.token, createNonce());
+    return renderTemplate(template, session.apiBase, session.token, createNonce()).replaceAll("__QQ_MAIL_BRIDGE_KEY__", jsonLiteral(await this.#sealedChannel.publicKey()));
   }
   async close() {
     if (this.#closing) {
@@ -122093,7 +122200,7 @@ var SettingsServer = class {
       if ((requestUrl.pathname === "/" || requestUrl.pathname === "/settings") && method === "GET") {
         this.#validateOptionalOrigin(request);
         const nonce = createNonce();
-        const html = renderTemplate(this.#template, this.origin, "", nonce);
+        const html = renderTemplate(this.#template, this.origin, "", nonce).replaceAll("__QQ_MAIL_BRIDGE_KEY__", jsonLiteral(""));
         response.statusCode = 200;
         response.setHeader("Content-Type", "text/html; charset=utf-8");
         response.setHeader("Content-Security-Policy", htmlContentSecurityPolicy(this.origin, nonce));
@@ -122108,66 +122215,7 @@ var SettingsServer = class {
         return;
       }
       const context = this.#authorizeApiRequest(request, response, method);
-      if (method === "GET" && requestUrl.pathname === "/api/profiles") {
-        if (!this.#callbacks.getProfiles) throw new HttpError(404, "Account profiles are unavailable");
-        const value = await this.#callbacks.getProfiles(context);
-        sendJson(response, 200, sanitizeProfiles(value));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/profiles") {
-        if (!this.#callbacks.changeProfile) throw new HttpError(404, "Account profiles are unavailable");
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const result = await this.#callbacks.changeProfile(parseProfileRequest(body), context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "GET" && requestUrl.pathname === "/api/config") {
-        const config2 = await this.#callbacks.getConfig(context);
-        sendJson(response, 200, sanitizePublicConfig(config2));
-        return;
-      }
-      if (method === "GET" && requestUrl.pathname === "/api/status") {
-        const status2 = await this.#callbacks.getStatus(context);
-        sendJson(response, 200, sanitizeStatus(status2));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/credential") {
-        const authorizationCode = await readCredential(request, this.#maxCredentialBytes);
-        const revision = readString(request.headers["x-qq-mail-account-revision"], 64, "accountRevision");
-        if (!/^[a-f0-9-]{36,64}$/u.test(revision)) throw new HttpError(400, "Invalid account revision");
-        const result = await this.#callbacks.setCredential(authorizationCode, context, revision);
-        sendJson(response, 200, sanitizeCredentialResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/test") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const testRequest = parseTestRequest(body);
-        const result = await this.#callbacks.test(testRequest, context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/save") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const saveRequest = {
-          config: parseFormConfig(body.config),
-          ...body.expectedRevision === void 0 ? {} : { expectedRevision: readRevision(body.expectedRevision) }
-        };
-        const result = await this.#callbacks.save(saveRequest, context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      if (method === "POST" && requestUrl.pathname === "/api/clear") {
-        const body = await readJsonObject(request, this.#maxBodyBytes);
-        rejectCredentialFields(body);
-        const result = await this.#callbacks.clear(context);
-        sendJson(response, 200, sanitizeActionResult(result));
-        return;
-      }
-      response.setHeader("Allow", requestUrl.pathname.startsWith("/api/") ? "GET, POST" : "GET");
-      throw new HttpError(405, "Method not allowed");
+      sendJson(response, 200, await this.#dispatch(request, requestUrl.pathname, method, context));
     } catch (error64) {
       if (response.headersSent || response.writableEnded) {
         response.end();
@@ -122178,6 +122226,101 @@ var SettingsServer = class {
         return;
       }
       sendJson(response, 500, { ok: false, message: "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u8BBE\u7F6E\u540E\u91CD\u8BD5\u3002" });
+    }
+  }
+  async #dispatch(request, path15, method, context) {
+    if (method === "GET" && path15 === "/api/profiles") {
+      if (!this.#callbacks.getProfiles) throw new HttpError(404, "Account profiles are unavailable");
+      const value = await this.#callbacks.getProfiles(context);
+      return sanitizeProfiles(value);
+    }
+    if (method === "POST" && path15 === "/api/profiles") {
+      if (!this.#callbacks.changeProfile) throw new HttpError(404, "Account profiles are unavailable");
+      const body = await readJsonObject(request, this.#maxBodyBytes);
+      rejectCredentialFields(body);
+      const result = await this.#callbacks.changeProfile(parseProfileRequest(body), context);
+      return sanitizeActionResult(result);
+    }
+    if (method === "GET" && path15 === "/api/config") {
+      const config2 = await this.#callbacks.getConfig(context);
+      return sanitizePublicConfig(config2);
+    }
+    if (method === "GET" && path15 === "/api/status") {
+      const status2 = await this.#callbacks.getStatus(context);
+      return sanitizeStatus(status2);
+    }
+    if (method === "POST" && path15 === "/api/credential") {
+      const authorizationCode = await readCredential(request, this.#maxCredentialBytes);
+      const revision = readString(request.headers["x-qq-mail-account-revision"], 64, "accountRevision");
+      if (!/^[a-f0-9-]{36,64}$/u.test(revision)) throw new HttpError(400, "Invalid account revision");
+      const result = await this.#callbacks.setCredential(authorizationCode, context, revision);
+      return sanitizeCredentialResult(result);
+    }
+    if (method === "POST" && path15 === "/api/test") {
+      const body = await readJsonObject(request, this.#maxBodyBytes);
+      rejectCredentialFields(body);
+      const testRequest = parseTestRequest(body);
+      const result = await this.#callbacks.test(testRequest, context);
+      return sanitizeActionResult(result);
+    }
+    if (method === "POST" && path15 === "/api/save") {
+      const body = await readJsonObject(request, this.#maxBodyBytes);
+      rejectCredentialFields(body);
+      const saveRequest = {
+        config: parseFormConfig(body.config),
+        ...body.expectedRevision === void 0 ? {} : { expectedRevision: readRevision(body.expectedRevision) }
+      };
+      const result = await this.#callbacks.save(saveRequest, context);
+      return sanitizeActionResult(result);
+    }
+    if (method === "POST" && path15 === "/api/clear") {
+      const body = await readJsonObject(request, this.#maxBodyBytes);
+      rejectCredentialFields(body);
+      const result = await this.#callbacks.clear(context);
+      return sanitizeActionResult(result);
+    }
+    throw new HttpError(405, "Method not allowed");
+  }
+  /** UI-only sealed transport; shared validators and native approvals also apply here. */
+  async requestFromApp(envelope, signal) {
+    if (this.#bridgeActive >= 4 || signal.aborted || !this.#server) {
+      return { status: 409, body: { ok: false, message: "\u8BBE\u7F6E\u8BF7\u6C42\u5DF2\u53D6\u6D88\u6216\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002" } };
+    }
+    this.#bridgeActive++;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal.addEventListener("abort", abort, { once: true });
+    this.#requestControllers.add(controller);
+    try {
+      let input2;
+      try {
+        input2 = await this.#sealedChannel.open(envelope);
+      } catch {
+        throw new HttpError(400, "\u65E0\u6CD5\u9A8C\u8BC1\u52A0\u5BC6\u8BBE\u7F6E\u8BF7\u6C42\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u63D2\u4EF6\u8BBE\u7F6E\u3002");
+      }
+      if (signal.aborted || controller.signal.aborted) throw new HttpError(409, "\u8BBE\u7F6E\u8BF7\u6C42\u5DF2\u53D6\u6D88\u3002");
+      const session = this.#findActiveSession(input2.token);
+      if (!session?.allowOpaqueOrigin) throw new HttpError(401, "\u8BBE\u7F6E\u4F1A\u8BDD\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u63D2\u4EF6\u8BBE\u7F6E\u3002");
+      if (session.requests.has(input2.requestId) || session.requests.size >= 512) {
+        throw new HttpError(409, "\u8BBE\u7F6E\u8BF7\u6C42\u5DF2\u4F7F\u7528\u6216\u4F1A\u8BDD\u8BF7\u6C42\u4E0A\u9650\u5DF2\u5230\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u63D2\u4EF6\u8BBE\u7F6E\u3002");
+      }
+      session.requests.add(input2.requestId);
+      const request = Readable.from(input2.body === void 0 ? [] : [Buffer.from(input2.body)]);
+      request.headers = input2.headers;
+      try {
+        return { status: 200, body: await this.#dispatch(request, input2.path, input2.method, { signal: controller.signal }) };
+      } finally {
+        request.destroy();
+      }
+    } catch (error64) {
+      return {
+        status: error64 instanceof HttpError ? error64.status : 500,
+        body: { ok: false, message: error64 instanceof HttpError ? error64.publicMessage : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u8BBE\u7F6E\u540E\u91CD\u8BD5\u3002" }
+      };
+    } finally {
+      this.#bridgeActive--;
+      signal.removeEventListener("abort", abort);
+      this.#requestControllers.delete(controller);
     }
   }
   #validateHost(request) {

@@ -1,6 +1,6 @@
 {
   "name": "qq-mail",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Local Windows QQ Mail tools with native confirmation and bounded task authorizations.",
   "requires_local_executor": true,
   "author": {

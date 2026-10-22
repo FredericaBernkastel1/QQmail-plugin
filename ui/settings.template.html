@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="light" />
     <title>QQ 邮箱设置</title>
     <style nonce="__QQ_MAIL_CSP_NONCE__">
+      button[hidden] { display: none !important; }
       :root {
         color-scheme: light;
         --canvas: #f4f5f7;
@@ -817,6 +818,7 @@
           </div>
         </div>
         <div id="overall-status" class="overall-status" data-state="unknown" role="status">正在读取</div>
+        <button id="retry-settings" class="button" type="button" hidden>重新连接</button>
       </div>
     </header>
 
@@ -1020,7 +1022,7 @@
             <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
             清除授权码
           </button>
-          <button id="save-settings" class="button primary" type="submit" form="settings-form">
+          <button id="save-settings" class="button primary" type="button">
             <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
             <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>
             保存设置
@@ -1034,7 +1036,7 @@
       <span id="toast-message" class="toast-message"></span>
     </div>
 
-    <script id="qq-mail-bootstrap" type="application/json" nonce="__QQ_MAIL_CSP_NONCE__">{"apiBase":__QQ_MAIL_API_BASE__,"token":__QQ_MAIL_SESSION_TOKEN__}</script>
+    <script id="qq-mail-bootstrap" type="application/json" nonce="__QQ_MAIL_CSP_NONCE__">{"apiBase":__QQ_MAIL_API_BASE__,"token":__QQ_MAIL_SESSION_TOKEN__,"bridgeKey":__QQ_MAIL_BRIDGE_KEY__}</script>
     <script nonce="__QQ_MAIL_CSP_NONCE__">/* QQ_MAIL_APP_BUNDLE_START */
 __QQ_MAIL_APP_BUNDLE__
 /* QQ_MAIL_APP_BUNDLE_END */</script>
@@ -1109,6 +1111,7 @@ __QQ_MAIL_APP_BUNDLE__
         }
 
         async function api(path, options = {}) {
+          if (window.__QQ_MAIL_SETTINGS_API__) return window.__QQ_MAIL_SETTINGS_API__(path, options);
           if (!sessionToken || !apiBase) {
             throw new Error("设置会话已过期，请从 Codex 重新打开。");
           }
@@ -1377,28 +1380,36 @@ __QQ_MAIL_APP_BUNDLE__
         }
 
         async function initialize() {
+          const retry = byId("retry-settings");
+          retry.hidden = true;
+          setPageEnabled(false);
           if (!sessionToken) {
             setPageEnabled(false);
             const overall = byId("overall-status");
             overall.dataset.state = "error";
             overall.textContent = "会话已过期";
             showToast("设置会话已过期，请从 Codex 重新打开。", "error");
+            retry.hidden = false;
             return;
           }
           try {
             const [config, status] = await Promise.all([api("/api/config"), api("/api/status")]);
             applyConfig(config);
             applyStatus(status);
+            setPageEnabled(true);
+            setCredentialStored(config.credentialStored);
             await loadProfiles();
           } catch (error) {
             setPageEnabled(false);
             const overall = byId("overall-status");
             overall.dataset.state = "error";
             overall.textContent = "无法读取";
+            retry.hidden = false;
             showToast(error.message, "error");
           }
         }
 
+        byId("retry-settings").addEventListener("click", () => void initialize());
         for (const button of document.querySelectorAll(".provider-option")) {
           button.addEventListener("click", () => selectProvider(button.dataset.provider, true));
         }
@@ -1423,8 +1434,7 @@ __QQ_MAIL_APP_BUNDLE__
           try { await refreshStatus(); } catch (error) { showToast(error.message, "error"); }
         }));
 
-        form.addEventListener("submit", (event) => {
-          event.preventDefault();
+        function saveSettings() {
           if (!validateForm()) return;
           const button = byId("save-settings");
           void runBusy(button, async () => {
@@ -1437,10 +1447,19 @@ __QQ_MAIL_APP_BUNDLE__
               showToast(error.message, "error");
             }
           });
+        }
+        byId("save-settings").addEventListener("click", saveSettings);
+        form.addEventListener("submit", event => event.preventDefault());
+        form.addEventListener("keydown", event => {
+          if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
+            event.preventDefault();
+            if (!byId("save-settings").disabled) saveSettings();
+          }
         });
 
         clearButton.addEventListener("click", () => {
-          if (!window.confirm("确认清除本机保存的邮箱授权码？")) return;
+          // Sandboxed plugin pages cannot use browser dialogs; the native approval still applies.
+          if (!window.__QQ_MAIL_SETTINGS_API__ && !window.confirm("确认清除本机保存的邮箱授权码？")) return;
           void runBusy(clearButton, async () => {
             try {
               const result = await api("/api/clear", { method: "POST", body: "{}" });

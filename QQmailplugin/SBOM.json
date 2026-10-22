@@ -1,6 +1,6 @@
 {
   "scope": "Conservative runtime dependency inventory; some entries may be eliminated by bundling",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "packages": [
     {
       "name": "@hono/node-server",

@@ -36,7 +36,7 @@ jobs:
           if ((Get-Item -LiteralPath $mailTestTemp).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Temporary test path is redirected.' }
           "TEMP=$mailTestTemp" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "TMP=$mailTestTemp" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: All local synthetic tests, including 26/17/6 tool profiles
+      - name: All local synthetic tests, including 29/17/6 tool profiles
         # Real PowerShell/DPAPI/path helpers can cold-start beyond Vitest's 5s
         # default on hosted Windows. Keep every assertion and a finite timeout.
         run: npm test -- --maxWorkers=1 --no-file-parallelism --testTimeout=30000

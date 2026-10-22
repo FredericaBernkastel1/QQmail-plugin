@@ -18,6 +18,7 @@ const draftAndWriteNames = [
 ];
 const interactiveOnlyNames = [
   "open_settings", "test_connection", "list_accounts", "switch_account", "select_attachments",
+  "plugin_settings_read", "plugin_settings_update", "settings_request",
   "list_attachments", "remove_attachments", "download_attachment", "move_emails",
 ];
 const authorizationNames = ["request_mail_authorization", "list_mail_authorizations", "revoke_mail_authorization"];
@@ -35,6 +36,7 @@ const grantRequest = {
 };
 const validArguments: Record<string, Record<string, unknown>> = {
   get_account_status: {}, list_mailboxes: {}, search_emails: {},
+  plugin_settings_read: {}, plugin_settings_update: { set: {} }, settings_request: { key: "A".repeat(344), iv: "A".repeat(16), ciphertext: "A".repeat(24) },
   read_email: { messageRef: "synthetic-message" },
   batch_read_emails: { messageRefs: ["synthetic-message"] },
   read_email_thread: { messageRef: "synthetic-message" },
@@ -108,7 +110,7 @@ describe("MCP tool exposure profiles", () => {
   it.each(profiles)("registers only the explicit %s tool surface with strict schemas", async (profile) => {
     const { client } = await connect(profile);
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength({ interactive: 26, authorized: 17, "read-only": 6 }[profile]);
+    expect(tools).toHaveLength({ interactive: 29, authorized: 17, "read-only": 6 }[profile]);
     expect(tools.map((tool) => tool.name).sort()).toEqual([...expectedNames[profile]].sort());
     for (const tool of tools) expect(tool.inputSchema.additionalProperties, tool.name).toBe(false);
   });
