@@ -6,7 +6,9 @@ import { DraftJournal } from "./draft-journal.js";
 import { validateRestoredDraftRecord } from "./mail/service.js";
 import { WindowsMailMutationApproval } from "./mail/mutation-approval.js";
 import { createAccountProfileServices } from "./profile-service.js";
-import { WindowsSendApproval } from "./approval.js";
+import { WindowsSendApproval, requestWindowsApprovalDetailed } from "./approval.js";
+import { createLocalMailAuthorizationRequest } from "./local-authorization.js";
+import { parseToolProfile } from "./tool-profile.js";
 import { WindowsAttachmentPicker } from "./attachment-picker.js";
 import {
   ImapFlowGateway,
@@ -30,6 +32,7 @@ let activeService: QqMailService | undefined;
 let draftJournal: DraftJournal<OutgoingMessage, Record<string, unknown>> | undefined;
 
 async function main(): Promise<void> {
+  const profile = parseToolProfile(process.argv.slice(2));
   const accountStore = new AccountStore();
   const imapGateway = new ImapFlowGateway();
   const smtpGateway = new NodemailerSmtpGateway();
@@ -40,7 +43,7 @@ async function main(): Promise<void> {
   // The service awaits this barrier before the first draft operation.
   const journal = draftJournal;
 
-  settingsServer = new SettingsServer({
+  if (profile === "interactive") settingsServer = new SettingsServer({
     callbacks: createSettingsCallbacks({
       accountStore,
       imapGateway,
@@ -48,7 +51,7 @@ async function main(): Promise<void> {
       settingsApproval,
     }),
   });
-  await settingsServer.start();
+  await settingsServer?.start();
 
   const accountProvider = createStoredMailAccountProvider(accountStore);
   const service = Object.assign(
@@ -61,6 +64,12 @@ async function main(): Promise<void> {
       },
       attachmentStorage: new SafeLocalAttachmentStorage(),
       sendApproval: new WindowsSendApproval(),
+      requireAuthorization: profile === "authorized",
+      authorizationApprover: async request => {
+        const context = await accountProvider.getContext();
+        const presentation = createLocalMailAuthorizationRequest(request, context, coreMessageReferenceCodec);
+        return presentation ? requestWindowsApprovalDetailed(presentation) : { status: "unavailable" };
+      },
       mutationApproval: new WindowsMailMutationApproval(),
       attachmentPicker: new WindowsAttachmentPicker(),
       imapGateway,
@@ -68,7 +77,8 @@ async function main(): Promise<void> {
     }),
     {
       openSettings: async () => {
-        const session = settingsServer!.createSession();
+        if (!settingsServer) throw new Error("Settings are disabled for this profile");
+        const session = settingsServer.createSession();
         return { url: session.browserUrl, expiresAt: session.expiresAt };
       },
     },
@@ -76,7 +86,7 @@ async function main(): Promise<void> {
   );
   activeService = service;
 
-  mcpServer = createQqMailMcpServer(service, settingsServer);
+  mcpServer = createQqMailMcpServer(service, settingsServer, profile);
   mcpServer.server.onclose = () => {
     void shutdown();
   };

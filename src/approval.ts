@@ -47,6 +47,14 @@ $ErrorActionPreference = 'Stop'
 $request = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::In.ReadToEnd())) | ConvertFrom-Json
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class QqMailApprovalWindow {
+  [DllImport("user32.dll")]
+  public static extern bool ShowWindow(IntPtr window, int command);
+}
+'@
 $form = New-Object Windows.Forms.Form
 $form.Text = $request.title
 $form.Width = 800
@@ -78,6 +86,9 @@ $form.Controls.Add($text)
 $form.Controls.Add($panel)
 $form.CancelButton = $cancel
 $form.AcceptButton = $cancel
+# Hidden PowerShell startup can suppress the first native ShowWindow call.
+# Show only this approval form after its initial display has completed.
+$form.Add_Shown({ [QqMailApprovalWindow]::ShowWindow($form.Handle, 5) | Out-Null })
 try {
   if ($form.ShowDialog() -eq [Windows.Forms.DialogResult]::Yes) {
     [Console]::Out.Write($request.nonce)

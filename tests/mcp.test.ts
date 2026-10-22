@@ -41,11 +41,11 @@ function fakeServices(): ToolServices {
   };
 }
 
-async function connect(services = fakeServices()) {
+async function connect(services = fakeServices(), allowedTools?: ReadonlySet<string>) {
   const server = createQqMailMcpServer(services, {
     origin: "http://127.0.0.1:1234",
     renderAppHtml: async () => "<!doctype html><title>QQ Mail</title>",
-  });
+  }, "interactive", allowedTools);
   const client = new Client({ name: "qq-mail-test", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -54,6 +54,12 @@ async function connect(services = fakeServices()) {
 }
 
 describe("QQ Mail MCP protocol", () => {
+  it("does not add the settings channel through an explicit narrower tool allowlist", async () => {
+    const { client } = await connect(fakeServices(), new Set(["open_settings"]));
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(["open_settings"]);
+    expect(client.getServerCapabilities()?.experimental ?? {}).not.toHaveProperty("openai/settings");
+    expect((await client.callTool({ name: "settings_request", arguments: {} })).isError).toBe(true);
+  });
   it("exposes no server instructions, prompts, sampling or arbitrary-code tool", async () => {
     const { client, services } = await connect();
     expect(client.getInstructions()).toBeUndefined();
@@ -125,7 +131,10 @@ describe("QQ Mail MCP protocol", () => {
         "download_attachment",
       ]),
     );
-    expect(names).toHaveLength(23);
+    expect(names).toHaveLength(29);
+    expect(names).toEqual(expect.arrayContaining([
+      "request_mail_authorization", "list_mail_authorizations", "revoke_mail_authorization",
+    ]));
     expect(result.tools.find((tool) => tool.name === "send_email")?.annotations?.destructiveHint).toBe(true);
     expect(result.tools.find((tool) => tool.name === "search_emails")?.annotations?.readOnlyHint).toBe(true);
     expect(result.tools.find((tool) => tool.name === "open_settings")?._meta).toMatchObject({
@@ -143,6 +152,27 @@ describe("QQ Mail MCP protocol", () => {
       text: expect.stringContaining("QQ Mail"),
       _meta: { ui: { csp: { connectDomains: ["http://127.0.0.1:1234"] } } },
     });
+  });
+
+  it("advertises plugin settings and navigation without exposing credential inputs", async () => {
+    const { client } = await connect();
+    expect(client.getServerCapabilities()?.experimental).toMatchObject({
+      "openai/settings": { readTool: "plugin_settings_read", updateTool: "plugin_settings_update" },
+    });
+    const tools = (await client.listTools()).tools;
+    expect(tools.find(tool => tool.name === "open_settings")?._meta).toMatchObject({
+      "openai/ui": { entrypoints: [{ type: "global" }, { type: "thread" }] },
+    });
+    for (const name of ["plugin_settings_read", "plugin_settings_update", "settings_request"]) {
+      const tool = tools.find(tool => tool.name === name)!;
+      expect(tool._meta).toMatchObject({ ui: { visibility: ["app"] } });
+      expect(JSON.stringify(tool.inputSchema)).not.toContain('"authorizationCode"');
+      expect((await client.callTool({ name, arguments: { authorizationCode: "SYNTHETIC_SECRET" } })).isError).toBe(true);
+    }
+    const read = await client.callTool({ name: "plugin_settings_read", arguments: {} });
+    expect(read.structuredContent).toMatchObject({ schema: { properties: {} }, values: {},
+      layout: [{ items: [{ kind: "tool", tool: "open_settings" }] }] });
+    expect((await client.callTool({ name: "plugin_settings_update", arguments: { set: { email: "unapproved@qq.com" } } })).isError).toBe(true);
   });
 
   it("returns a browser fallback whose bearer token exists only in the URL fragment", async () => {

@@ -1,19 +1,37 @@
-# 0.3.0 validation scope
+# Local 0.4.4 validation
 
-The local release was accepted on 2026-10-21 using synthetic mail and a restricted Windows AppContainer, a private desktop, and bounded process jobs. The acceptance records and raw OS metadata remain local and are not included in this public repository.
+Snapshot: 2026-10-22. Local Windows stdio plugin; cloud candidate results are excluded.
 
-| Area | Recorded result |
+Current-version bounded release acceptance is recorded; all snapshot-listed source and test hashes match this staged source. Runtime delivery is checked separately before copying.
+
+| Check | Result |
 | --- | --- |
-| Business tests | 246/246 passed across 18 files |
-| Settings UI | 8 checks, 94 HTTP interactions; desktop/mobile |
-| Native approval | 4 checks |
-| Native attachment picker | 2 checks |
-| Native file handle / DPAPI / ACL | Passed recorded cases |
-| Isolation boundary | Passed recorded checks |
-| Independent Codex installation and original Node stdio | Passed |
+| Full controlled synthetic suite | 428/428 passed, 27 test files, no skips |
+| Native approval | 6/6 native checks passed with naturally visible windows |
+| Browser settings | 10 checks, 88 HTTP exchanges for fallback; embedded flow uses zero HTTP requests |
+| Native attachment picker | 2 checks: selection and cancellation |
+| Installation/runtime | Original Node, official isolated Codex install, 29 tools, settings resource and 60-second idle check |
+| OS boundaries | Zero-network AppContainer, directory and process checks |
 
-The full suite used a documented, test-only Node pipe adaptation required by the isolated harness. Independent installed stdio verification used unmodified Node. No adapted Node binary is distributed here.
+Embedded browser checks use an opaque-origin iframe without form or modal
+permissions. They exercise recovery after initial connection failure, typing,
+button save, Enter save, credential clearing and encrypted MCP forwarding through
+the real MCP server to the same settings callbacks. Authorization codes do not
+appear in the recorded synthetic host messages. Account stores, mail transports
+and approval decisions in browser checks are synthetic; native approval is tested
+separately. Additional tests cover tampering, replay, expiry, wrong keys,
+unapproved changes, changed account revisions, malformed operations and shutdown.
 
-The public copy preserves the tested server bundle, source map, linked legal comments, settings UI, and production TypeScript source. Publication changes are repository/author metadata, documentation, license notices, and regenerated checksums. These do not constitute a new complete test run of the public checkout.
+Daily Codex visual embedding and real credential entry for 0.4.4 remain pending
+the owner's restart and interaction. The preceding real mailbox check was rejected
+by the provider. No real mailbox connection, send or mutation was attempted in
+this UI maintenance. Do not treat these synthetic results as real-mail acceptance.
+Public CI for the new commit must be checked separately; prior CI is not evidence
+for a new commit. This document is updated after publication when CI is available.
 
-Not verified: a real user's QQ mailbox, ordinary Codex desktop embedding, all possible mail servers, cross-Windows-user isolation, or a hard Node RSS cap. A successful synthetic 100 MiB streaming download does not prove every real server implements partial FETCH correctly. Ordinary installation does not inherit the test sandbox.
+The runtime bytes match current local acceptance. Public LICENSE and
+THIRD_PARTY_NOTICES remain additional files in the public checksum index.
+Ordinary installation is not automatically AppContainer-isolated. Cross-user
+validation remains excluded by the owner. Legacy storage migration is not
+implemented; no account data was moved or deleted. Earlier host crash causality
+remains unconfirmed. Private account data and raw OS traces are not published.

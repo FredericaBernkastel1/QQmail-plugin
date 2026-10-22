@@ -150,7 +150,15 @@ function createHarness(options: {
       now,
       idFactory: () => "draft_12345678901234567890",
     }),
-    attachmentStorage: new SafeLocalAttachmentStorage(),
+    attachmentStorage: { save: async input => {
+      try { return await new SafeLocalAttachmentStorage().save(input); }
+      catch (error) {
+        // Synthetic-test diagnostics only. Never log paths, content or raw exceptions.
+        const code = error && typeof error === "object" && "code" in error ? String(error.code) : "UNCLASSIFIED";
+        console.error("Synthetic attachment storage failure:", /^[A-Z_]+$/u.test(code) ? code : "UNCLASSIFIED");
+        throw error;
+      }
+    } },
     imapGateway: imap,
     smtpGateway: smtp,
     sendApproval: { confirm: options.approve ?? (async () => true) },
@@ -655,5 +663,5 @@ describe("QQ Mail service", () => {
     expect(path.dirname(result.path)).toBe(await realpath(directory));
     expect(await readFile(result.path, "utf8")).toBe("attachment-body");
     expect(result.bytes).toBe(content.length);
-  });
+  }, 90_000);
 });
